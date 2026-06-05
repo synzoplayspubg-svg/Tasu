@@ -880,11 +880,15 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       };
 
       // Always write to JSON backup server file (only passing the actual updates to prevent state-race-condition overwrites)
-      await fetch("/api/content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates)
-      });
+      try {
+        await fetch("/api/content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates)
+        });
+      } catch (backupErr) {
+        console.warn("[Content Sync] Express backend fallback is currently offline or unreachable. Saving directly to primary Supabase storage instead.", backupErr);
+      }
 
       // Synchronously emit live signal timestamp in localStorage for cross-tab preview
       safeLocalStorage.setItem("avexon_content_last_updated", Date.now().toString());
