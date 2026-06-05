@@ -7788,7 +7788,7 @@ create policy "Allow all actions" on public.avexon_content for all using (true) 
                                 setIsSmsTesting(true);
                                 setTestResult(null);
                                 try {
-                                  const res = await fetch("/api/test-sms", {
+                                  let res = await fetch("/api/test-sms", {
                                     method: "POST",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({
@@ -7800,11 +7800,32 @@ create policy "Allow all actions" on public.avexon_content for all using (true) 
                                     })
                                   });
 
+                                  // Special safe fallback if custom backend URL returns 404
+                                  const customSaveUrl = typeof window !== "undefined" ? window.localStorage.getItem("avexon_api_backend_url") : null;
+                                  if (res.status === 404 && customSaveUrl) {
+                                    const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+                                    if (currentOrigin && !customSaveUrl.includes(currentOrigin)) {
+                                      console.warn(`[SMS Test] Custom backend returned 404. Falling back to current page origin: ${currentOrigin}`);
+                                      res = await fetch(`${currentOrigin}/api/test-sms`, {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                          apiKey: smsApiKey,
+                                          senderId: smsSenderId,
+                                          number: testSmsNumber,
+                                          message: testSmsMessage,
+                                          smsApiUrl: smsApiUrl
+                                        })
+                                      });
+                                    }
+                                  }
+
                                   const contentType = res.headers.get("content-type");
                                   if (!res.ok || !contentType || !contentType.includes("application/json")) {
                                     const rawText = await res.text();
                                     console.error("Non-JSON test-sms response:", rawText.slice(0, 200));
-                                    throw new Error(`সার্ভার থেকে অবৈধ রেসপন্স এসেছে (স্ট্যাটাস: ${res.status})। অনুগ্রহ করে API Gateway বা সার্ভার রিস্টার্ট করুন।`);
+                                    const requestedUrl = res.url || "/api/test-sms";
+                                    throw new Error(`সার্ভার থেকে অবৈধ রেসপন্স এসেছে (স্ট্যাটাস: ${res.status})। ইউআরএল: ${requestedUrl}। অনুগ্রহ করে ব্যাকএন্ড সিঙ্ক লিঙ্কটি রিসেট (রিসেট করুন (Default) বাটনে ক্লিক) করে ব্রাউজার রিফ্রেশ দিন এবং পুনরায় টেস্ট করুন।`);
                                   }
 
                                   const ans = await res.json();
