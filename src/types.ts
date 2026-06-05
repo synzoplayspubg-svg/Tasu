@@ -109,6 +109,7 @@ export interface ContactConfig {
   nagadNumber?: string;
   instagramUrl?: string;
   whatsappUrl?: string;
+  smsApiUrl?: string;
   smsApiKey?: string;
   smsSenderId?: string;
   smsAdminNumber?: string;

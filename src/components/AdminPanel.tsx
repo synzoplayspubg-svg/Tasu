@@ -1460,6 +1460,7 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
   const [whatsappUrl, setWhatsappUrl] = useState(contactConfig?.whatsappUrl || "");
 
   // SMS settings states (BulkSMSBD)
+  const [smsApiUrl, setSmsApiUrl] = useState(contactConfig?.smsApiUrl || "");
   const [smsApiKey, setSmsApiKey] = useState(contactConfig?.smsApiKey || "");
   const [smsSenderId, setSmsSenderId] = useState(contactConfig?.smsSenderId || "");
   const [smsAdminNumber, setSmsAdminNumber] = useState(contactConfig?.smsAdminNumber || "01613911528");
@@ -1576,6 +1577,7 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
         setNagadNumber(contactConfig?.nagadNumber || "");
         setInstagramUrl(contactConfig.instagramUrl || "");
         setWhatsappUrl(contactConfig.whatsappUrl || "");
+        setSmsApiUrl(contactConfig.smsApiUrl || "");
         setSmsApiKey(contactConfig.smsApiKey || "");
         setSmsSenderId(contactConfig.smsSenderId || "");
         setSmsAdminNumber(contactConfig.smsAdminNumber || "01613911528");
@@ -2045,6 +2047,7 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
         nagadNumber,
         instagramUrl,
         whatsappUrl,
+        smsApiUrl,
         smsApiKey,
         smsSenderId,
         smsAdminNumber,
@@ -2074,6 +2077,7 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
         nagadNumber,
         instagramUrl,
         whatsappUrl,
+        smsApiUrl,
         smsApiKey,
         smsSenderId,
         smsAdminNumber,
@@ -7560,6 +7564,32 @@ create policy "Allow all actions" on public.avexon_content for all using (true) 
                         </div>
                       </div>
 
+                      {/* Custom API URL Endpoint */}
+                      <div className="space-y-2 p-4.5 rounded-2xl bg-purple-500/5 border border-purple-500/10">
+                        <label className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block flex flex-wrap items-center gap-1.5">
+                          <span>কাস্টম এসএমএস গেটওয়ে এপিআই ইউআরএল (Custom SMS API URL Template)</span>
+                          <span className="normal-case text-[9px] text-slate-400 font-normal">(ঐচ্ছিক - ডিফল্ট BulkSMSBD ব্যবহার করতে ফাঁকা রাখুন)</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="যেমন: http://bulksmsbd.net/api/smsapi বা কাস্টম সোর্স প্লেসহোল্ডার লিঙ্ক"
+                          value={smsApiUrl}
+                          onChange={(e) => setSmsApiUrl(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-[#0b0314] border border-cyan-500/20 text-xs text-cyan-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all font-mono"
+                        />
+                        <div className="text-[9.5px] text-slate-400 leading-relaxed space-y-1.5 pl-1 font-sans">
+                          <p>
+                            ডিফল্ট BulkSMSBD ছাড়া অন্য কোনো ডাইনামিক কোম্পানি গেটওয়ে ব্যবহার করতে চাইলে এখানে সম্পূর্ণ Get-Request URLটি দিন। নিচের প্লেসহোল্ডারগুলো ডাইনামিক্যালি রিপ্লেস হয়ে সার্ভার থেকে কল হবে:
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-[8px] font-mono mt-1">
+                            <span className="bg-black/40 px-2 py-0.5 rounded border border-purple-500/10 text-cyan-300">[API_KEY] - এপিআই কি</span>
+                            <span className="bg-black/40 px-2 py-0.5 rounded border border-purple-500/10 text-cyan-300">[SENDER_ID] - সেন্ডার আইডি</span>
+                            <span className="bg-black/40 px-2 py-0.5 rounded border border-purple-500/10 text-cyan-300">[NUMBER] - কাস্টমার নম্বর</span>
+                            <span className="bg-black/40 px-2 py-0.5 rounded border border-purple-500/10 text-cyan-300">[MESSAGE] - এসএমএস মেসেজ</span>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {/* API Key */}
                         <div className="space-y-1.5">
@@ -7765,7 +7795,8 @@ create policy "Allow all actions" on public.avexon_content for all using (true) 
                                       apiKey: smsApiKey,
                                       senderId: smsSenderId,
                                       number: testSmsNumber,
-                                      message: testSmsMessage
+                                      message: testSmsMessage,
+                                      smsApiUrl: smsApiUrl
                                     })
                                   });
 

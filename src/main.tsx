@@ -34,18 +34,34 @@ if (typeof window !== "undefined") {
     if (originalFetch) {
       let absoluteBaseUrl = "";
 
-      // 1. Check window.location.origin if it is a valid Cloud Run or localhost origin
+      // 1. Check window.location.href or document.URL first (Highly robust & handles sandboxing perfectly)
       try {
-        const origin = window.location.origin;
-        if (origin && origin !== "null" && origin.startsWith("http")) {
-          const isCloudRun = origin.includes(".run.app") || origin.includes("localhost") || origin.includes("127.0.0.1") || origin.includes("192.168.");
+        const href = window.location.href || document.URL || "";
+        if (href && href.startsWith("http")) {
+          const isCloudRun = href.includes(".run.app") || href.includes("localhost") || href.includes("127.0.0.1") || href.includes("192.168.");
           if (isCloudRun) {
-            absoluteBaseUrl = origin;
+            const match = href.match(/^(https?:\/\/[^\/]+)/);
+            if (match) {
+              absoluteBaseUrl = match[1];
+            }
           }
         }
       } catch (_) {}
 
-      // 2. Check import.meta.url for a valid Cloud Run origin (extremely resilient in sandboxed iframes!)
+      // 2. Check window.location.origin if it is a valid Cloud Run or localhost origin
+      if (!absoluteBaseUrl) {
+        try {
+          const origin = window.location.origin;
+          if (origin && origin !== "null" && origin.startsWith("http")) {
+            const isCloudRun = origin.includes(".run.app") || origin.includes("localhost") || origin.includes("127.0.0.1") || origin.includes("192.168.");
+            if (isCloudRun) {
+              absoluteBaseUrl = origin;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 3. Check import.meta.url for a valid Cloud Run origin (extremely resilient in sandboxed iframes!)
       if (!absoluteBaseUrl) {
         try {
           const metaUrl = import.meta.url;
@@ -56,7 +72,7 @@ if (typeof window !== "undefined") {
         } catch (_) {}
       }
 
-      // 3. Search DOM tags (scripts and stylesheets) for active .run.app hosting URLs
+      // 4. Search DOM tags (scripts and stylesheets) for active .run.app hosting URLs
       if (!absoluteBaseUrl) {
         try {
           const runAppRegex = /^(https?:\/\/[a-z0-9\-]+\.asia-southeast1\.run\.app)/i;
@@ -87,7 +103,7 @@ if (typeof window !== "undefined") {
         } catch (_) {}
       }
 
-      // 4. Check document.referrer to see if it is a valid Cloud Run URL or is from google ai studio
+      // 5. Check document.referrer to see if it is a valid Cloud Run URL or is from google ai studio
       if (!absoluteBaseUrl) {
         try {
           const referrer = document.referrer;
@@ -100,24 +116,13 @@ if (typeof window !== "undefined") {
         } catch (_) {}
       }
 
-      // 5. Hardcoded system configuration parameters specifically matching this live preview sandbox run!
+      // 6. Hardcoded system configuration parameters specifically matching this live preview sandbox run!
       if (!absoluteBaseUrl) {
         try {
           const containerId = "ipuxpftgfhnjhuotjs5q4d-34985570118";
           const isPre = document.referrer && document.referrer.includes("-pre-");
           const mode = isPre ? "pre" : "dev";
           absoluteBaseUrl = `https://ais-${mode}-${containerId}.asia-southeast1.run.app`;
-        } catch (_) {}
-      }
-
-      // 6. Generic window.location.href or document.URL check
-      if (!absoluteBaseUrl) {
-        try {
-          const href = window.location.href;
-          if (href && href.startsWith("http")) {
-            const match = href.match(/^(https?:\/\/[^\/]+)/);
-            if (match) absoluteBaseUrl = match[1];
-          }
         } catch (_) {}
       }
 

@@ -477,19 +477,58 @@ function formatSMSNumber(phone: string): string {
 }
 
 // BulkSMSBD API trigger
-async function sendBulkSMS(apiKey: string, senderId: string, number: string, message: string) {
+async function sendBulkSMS(apiKey: string, senderId: string, number: string, message: string, customApiUrl?: string) {
   if (!apiKey || !number || !message) {
     console.warn("[BulkSMSBD] Skipping SMS trigger: Missing apiKey, recipient number, or message text.");
     return null;
   }
 
+  // Auto-resolve custom API URL from config database if not passed explicitly as an argument
+  let activeApiUrl = customApiUrl;
+  if (!activeApiUrl) {
+    try {
+      if (fs.existsSync(CONTENT_DB_FILE)) {
+        const contentData = JSON.parse(fs.readFileSync(CONTENT_DB_FILE, "utf-8"));
+        if (contentData && contentData.contactConfig && contentData.contactConfig.smsApiUrl) {
+          activeApiUrl = contentData.contactConfig.smsApiUrl;
+        }
+      }
+    } catch (_) {}
+  }
+
   const formattedNumber = formatSMSNumber(number);
   const encodedMsg = encodeURIComponent(message);
   
-  // Endpoint URL
-  const url = `http://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(apiKey)}&type=text&number=${encodeURIComponent(formattedNumber)}&senderid=${encodeURIComponent(senderId)}&message=${encodedMsg}`;
+  let url = "";
+  if (activeApiUrl && activeApiUrl.trim()) {
+    const tempUrl = activeApiUrl.trim();
+    const hasPlaceholders = 
+      tempUrl.includes("[API_KEY]") || tempUrl.includes("[SENDER_ID]") || tempUrl.includes("[NUMBER]") || tempUrl.includes("[MESSAGE]") ||
+      tempUrl.includes("{api_key}") || tempUrl.includes("{sender_id}") || tempUrl.includes("{number}") || tempUrl.includes("{message}");
+
+    if (hasPlaceholders) {
+      url = tempUrl
+        .replace(/\[API_KEY\]/gi, apiKey)
+        .replace(/\{api_key\}/gi, apiKey)
+        .replace(/\[SENDER_ID\]/gi, senderId)
+        .replace(/\{sender_id\}/gi, senderId)
+        .replace(/\[NUMBER\]/gi, formattedNumber)
+        .replace(/\{number\}/gi, formattedNumber)
+        .replace(/\[MESSAGE\]/gi, message) // Use raw message style if user's API does encoding, but we safe-encode next or let them handle it. Actually URL template usually requires encoded message, or sometimes we auto-encode. Let's do encodeURIComponent.
+        .replace(/\[MESSAGE\]/gi, encodedMsg)
+        .replace(/\{message\}/gi, encodedMsg);
+    } else {
+      // If no placeholders, append standard BulkSMSBD URL query structure automatically
+      const separator = tempUrl.includes("?") ? "&" : "?";
+      url = `${tempUrl}${separator}api_key=${encodeURIComponent(apiKey)}&type=text&number=${encodeURIComponent(formattedNumber)}&senderid=${encodeURIComponent(senderId)}&message=${encodedMsg}`;
+    }
+  } else {
+    // Default standard BulkSMSBD endpoint
+    url = `http://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(apiKey)}&type=text&number=${encodeURIComponent(formattedNumber)}&senderid=${encodeURIComponent(senderId)}&message=${encodedMsg}`;
+  }
   
-  console.log(`[BulkSMSBD] Sending to ${formattedNumber}...`);
+  console.log(`[SMS Gateway] Sending via URL: ${url.replace(apiKey, "HIDDEN_API_KEY")}`);
+  console.log(`[SMS Gateway] Dispatching to number: ${formattedNumber}...`);
   try {
     const response = await fetch(url);
     const text = await response.text();
@@ -1168,11 +1207,11 @@ app.post("/api/verify-passcode", (req, res) => {
 // Secure API to test BulkSMSBD gateway configurations safely on-the-fly
 app.post("/api/test-sms", async (req, res) => {
   try {
-    const { apiKey, senderId, number, message } = req.body;
+    const { apiKey, senderId, number, message, smsApiUrl } = req.body;
     if (!apiKey || !number || !message) {
       return res.status(400).json({ success: false, error: "প্রয়োজনীয় ফিল্ড (API Key, Number, Message) পাওয়া যায়নি!" });
     }
-    const apiResponse = await sendBulkSMS(apiKey.trim(), senderId?.trim() || "", number.trim(), message);
+    const apiResponse = await sendBulkSMS(apiKey.trim(), senderId?.trim() || "", number.trim(), message, smsApiUrl);
     return res.json({ success: true, result: apiResponse });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
