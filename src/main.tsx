@@ -151,12 +151,19 @@ if (typeof window !== "undefined") {
         if (typeof input === "string" && input.startsWith("/") && !input.startsWith("//")) {
           isRelative = true;
           let targetBaseUrl = activeBaseUrl;
-          try {
-            const configuredUrl = window.localStorage.getItem("avexon_api_backend_url");
-            if (configuredUrl && configuredUrl.trim()) {
-              targetBaseUrl = configuredUrl.trim();
-            }
-          } catch (_) {}
+          
+          // Pure local utility endpoints must bypass any custom backend url redirects to run on the active container
+          const isPureLocalUtility = input.startsWith("/api/test-sms") || input.startsWith("/api/server-ip");
+          
+          if (!isPureLocalUtility) {
+            try {
+              const configuredUrl = window.localStorage.getItem("avexon_api_backend_url");
+              if (configuredUrl && configuredUrl.trim()) {
+                targetBaseUrl = configuredUrl.trim();
+              }
+            } catch (_) {}
+          }
+          
           if (targetBaseUrl) {
             const cleanBaseUrl = targetBaseUrl.replace(/\/+$/, "");
             input = cleanBaseUrl + input;
