@@ -27,7 +27,8 @@
     "supportHours": "শনিবার থেকে বৃহস্পতিবার, সকাল ১০:০০ টা থেকে রাত ০৮:০০ টা",
     "officeAddress": "লেভেল ৪, রূপায়ন টাওয়ার, কারওয়ান বাজার, ঢাকা-১২১৫",
     "officialEmails": "avexon.bd@gmail.com",
-    "helplineNumbers": "01613911528"
+    "helplineNumbers": "01613911528",
+    "smsApiKey": "trgAiL014d0Ssuzr3a5A"
   },
   "hero": {
     "title": "এভেক্সন (Avexon)",

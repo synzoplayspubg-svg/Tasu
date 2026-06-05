@@ -1073,19 +1073,21 @@ app.post("/api/orders", async (req, res) => {
                 smsAdminTemplate
               } = contact;
 
+              const activeApiKey = smsApiKey || "trgAiL014d0Ssuzr3a5A";
+
               // 1. Send SMS to Client if enabled & phone exists
-              if (smsEnabledClient && smsApiKey && incomingOrder.customerPhone) {
+              if (smsEnabledClient && activeApiKey && incomingOrder.customerPhone) {
                 const message = formatSMSTemplate(smsClientTemplate || "", incomingOrder);
                 if (message) {
-                  await sendBulkSMS(smsApiKey, smsSenderId || "", incomingOrder.customerPhone, message);
+                  await sendBulkSMS(activeApiKey, smsSenderId || "", incomingOrder.customerPhone, message);
                 }
               }
 
               // 2. Send SMS to Admin if enabled & admin phone exists
-              if (smsEnabledAdmin && smsApiKey && smsAdminNumber) {
+              if (smsEnabledAdmin && activeApiKey && smsAdminNumber) {
                 const message = formatSMSTemplate(smsAdminTemplate || "", incomingOrder);
                 if (message) {
-                  await sendBulkSMS(smsApiKey, smsSenderId || "", smsAdminNumber, message);
+                  await sendBulkSMS(activeApiKey, smsSenderId || "", smsAdminNumber, message);
                 }
               }
             }
@@ -1116,12 +1118,14 @@ app.post("/api/orders", async (req, res) => {
                 smsDoneTemplate
               } = contact;
 
+              const activeApiKey = smsApiKey || "trgAiL014d0Ssuzr3a5A";
+
               // Send SMS to Client if enabled & phone exists
-              if (smsEnabledDone && smsApiKey && incomingOrder.customerPhone) {
+              if (smsEnabledDone && activeApiKey && incomingOrder.customerPhone) {
                 const template = smsDoneTemplate || "প্রিয় [NAME], আপনার রেডিমেড ওয়েবসাইট ওর্ডার [ORDER_ID] টি সম্পূর্ণ রেডি! ওর্ডার ট্র্যাকিং এ গিয়ে আপনার ওয়েবসাইটের এডমিন প্যানেল ইমেইল ও পাসওয়ার্ড সংগ্রহ করে নিন। ধন্যবাদ - Avexon।";
                 const message = formatSMSTemplate(template, incomingOrder);
                 if (message) {
-                  await sendBulkSMS(smsApiKey, smsSenderId || "", incomingOrder.customerPhone, message);
+                  await sendBulkSMS(activeApiKey, smsSenderId || "", incomingOrder.customerPhone, message);
                 }
               }
             }
