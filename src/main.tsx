@@ -36,9 +36,17 @@ if (typeof window !== "undefined") {
       
       // Try resolving absolute base from window location
       try {
-        const origin = window.location.origin;
-        if (origin && origin !== "null" && origin.startsWith("http")) {
-          absoluteBaseUrl = origin;
+        const hostname = window.location.hostname || "";
+        const isCloudRun = hostname.includes(".run.app") || hostname.includes("localhost") || hostname.includes("127.0.0.1") || hostname.startsWith("192.168.");
+        
+        if (!isCloudRun) {
+          // Keep the persistent Cloud Run backend URL as the default for statically hosted sites (Netlify, Vercel, etc.)
+          absoluteBaseUrl = "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app";
+        } else {
+          const origin = window.location.origin;
+          if (origin && origin !== "null" && origin.startsWith("http")) {
+            absoluteBaseUrl = origin;
+          }
         }
       } catch (_) {}
 
