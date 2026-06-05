@@ -1,0 +1,1063 @@
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+/* 
+  এখানে আপনি আপনার নিজের ফন্টের ফাইলটি আপলোড করতে পারেন। 
+  যেমন: public ফোল্ডারের ভেতর fonts নামের একটি ফোল্ডার খুলে সেখানে 
+  আপনার ফন্টটি "custom-logo.woff2" বা "custom-logo.ttf" নামে রাখতে পারেন।
+*/
+@font-face {
+  font-family: 'MyCustomFont';
+  src: url('/fonts/custom-logo.woff2') format('woff2'),
+       url('/fonts/custom-logo.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Hind Siliguri", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-logo: "MyCustomFont", "Hind Siliguri", "Inter", sans-serif;
+}
+
+/* Custom Scrollbar Styles for elegant Dark experience */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(6, 13, 22, 0.4);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.25);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+/* Support native smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+  background-color: #010003;
+  color-scheme: dark;
+  width: 100%;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: none;
+  -webkit-text-size-adjust: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #010003;
+  width: 100%;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enable smooth inertia scrolling on custom scrollbars */
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Lock background scrolling when any modal or demo is active */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+/* Hide navigation bar dynamically when facilities details/benefits modal is open */
+body.modal-open #main-navbar,
+body.modal-open #global-notice-bar {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(-100%) !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Hide floating navigation action trigger dynamically when any modal is open */
+body.modal-open #floating-navigation-system {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(40px) scale(0.9) !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Stunning glowing ring presets */
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+}
+
+/* Rotating Neon Loop Border for Service Cards */
+@keyframes neon-border-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.neon-card-border-container {
+  position: relative;
+  border-radius: 1rem; /* 16px to match rounded-2xl */
+  padding: 1.5px; /* Border thickness */
+  overflow: hidden;
+  background: rgba(168, 85, 247, 0.08); /* Fallback subtle dark purple bg */
+  transition: all 0.3s ease-in-out;
+}
+
+.neon-card-border-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 150deg,
+    transparent 20%,
+    #a855f7 40%,
+    #f472b6 50%,
+    #3b82f6 60%,
+    transparent 80%
+  );
+  animation: neon-border-spin 6s linear infinite;
+  will-change: transform;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4; /* Subtle glow in resting state */
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neon-card-border-container:hover::before {
+  opacity: 1; /* High prominence neon shine on mouse hover without changing speed to prevent blinking */
+}
+
+/* Brighter state when the core details are active and expanded */
+.neon-card-border-container.card-expanded::before {
+  opacity: 1;
+  background: conic-gradient(
+    from 0deg,
+    transparent 15%,
+    #c084fc 35%,
+    #f472b6 50%,
+    #60a5fa 65%,
+    transparent 85%
+  );
+}
+
+.neon-card-inner-content {
+  position: relative;
+  z-index: 1;
+  background: #0d041b; /* Rich solid dark background to mask interior perfectly and contrast neon */
+  border-radius: calc(1rem - 1.5px);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transition: background-color 0.3s ease;
+}
+
+/* Custom bold, glossy purple neon rotating outline loop for Why Choose Us cards */
+.why-choose-us-neon-card {
+  position: relative;
+  border-radius: 1.5rem; /* rounded-3xl */
+  padding: 3px; /* Bolder outline thickness for high visual quality */
+  overflow: hidden;
+  background: #0f0620;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.why-choose-us-neon-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 280%;
+  height: 280%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 150deg,
+    transparent 15%,
+    #c084fc 35%,
+    #e879f9 50%,
+    #a855f7 65%,
+    transparent 85%
+  );
+  animation: neon-border-spin 4s linear infinite;
+  will-change: transform;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.why-choose-us-neon-inner {
+  position: relative;
+  z-index: 1;
+  background: #110624; /* Seamless dark inner masking */
+  border-radius: calc(1.5rem - 3px);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 1.75rem;
+  transition: all 0.3s ease;
+}
+
+@media (hover: hover) {
+  .why-choose-us-neon-card:hover {
+    box-shadow: 0 0 35px rgba(168, 85, 247, 0.65), 0 0 55px rgba(232, 121, 249, 0.4);
+  }
+}
+
+.why-choose-us-neon-card:active,
+.why-choose-us-neon-card:focus,
+.why-choose-us-neon-card:focus-within {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.why-choose-us-neon-card.no-glow-card {
+  box-shadow: none !important;
+}
+
+.why-choose-us-neon-card.no-glow-card:hover,
+.why-choose-us-neon-card.no-glow-card:active,
+.why-choose-us-neon-card.no-glow-card:focus {
+  box-shadow: none !important;
+}
+
+/* Custom neon rotating outline loop for track button */
+.track-btn-neon {
+  position: relative;
+  border-radius: 9999px; /* fully rounded */
+  padding: 1.5px; /* fine border */
+  overflow: hidden;
+  background: rgba(168, 85, 247, 0.15);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
+  transition: all 0.3s ease;
+}
+
+.track-btn-neon::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  height: 250%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 150deg,
+    transparent 15%,
+    #a855f7 35%,
+    #d8b4fe 50%,
+    #8b5cf6 65%,
+    transparent 85%
+  );
+  animation: neon-border-spin 3s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.track-btn-neon:hover {
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.6);
+}
+
+/* Custom purple rotating outline neon loop for tracking card */
+.tracker-neon-card {
+  position: relative;
+  border-radius: 1.75rem; /* rounded-3xl */
+  padding: 2.5px; /* fine, premium outline */
+  overflow: hidden;
+  background: #090312;
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.3);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tracker-neon-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 150deg,
+    transparent 10%,
+    #a855f7 30%,
+    #d8b4fe 50%,
+    #c084fc 70%,
+    transparent 90%
+  );
+  animation: neon-border-spin 4s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.tracker-neon-inner {
+  position: relative;
+  z-index: 1;
+  background: #090313; /* Dark space background */
+  border-radius: calc(1.75rem - 2.5px);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 1.75rem;
+  transition: all 0.3s ease;
+}
+
+.tracker-neon-card:hover {
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.55), 0 0 60px rgba(216, 180, 254, 0.3);
+}
+
+/* Beautiful custom rotating outline neon loop animations for the countdown timer rectangle boxes */
+.timer-neon-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1.8px;
+  background: #120524;
+  transition: all 0.3s ease;
+}
+
+/* Offer container card glowing rotating loop outline */
+.offer-neon-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1.8px;
+  background: #0d041c;
+  border-radius: 1rem; /* rounded-2xl matches */
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+  transition: all 0.3s ease-in-out;
+}
+
+.offer-neon-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  height: 250%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 150deg,
+    transparent 15%,
+    #c084fc 35%,
+    #f472b6 50%,
+    #a855f7 65%,
+    transparent 85%
+  );
+  animation: neon-border-spin 6s linear infinite;
+  will-change: transform;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.offer-neon-inner {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(1rem - 1.8px);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.timer-neon-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 320%;
+  height: 320%;
+  transform: translate(-50%, -50%);
+  animation: neon-border-spin 3s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.timer-neon-card-hour {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.45);
+}
+.timer-neon-card-hour::before {
+  background: conic-gradient(
+    from 0deg,
+    transparent 15%,
+    #c084fc 35%,
+    #a855f7 50%,
+    #7c3aed 65%,
+    transparent 85%
+  );
+}
+.timer-neon-card-hour .timer-neon-inner {
+  box-shadow: inset 0 0 14px rgba(168, 85, 247, 0.85), inset 0 0 4px rgba(168, 85, 247, 0.5);
+}
+
+.timer-neon-card-min {
+  box-shadow: 0 0 20px rgba(217, 70, 249, 0.45);
+}
+.timer-neon-card-min::before {
+  background: conic-gradient(
+    from 0deg,
+    transparent 15%,
+    #f472b6 35%,
+    #e879f9 50%,
+    #d946ef 65%,
+    transparent 85%
+  );
+}
+.timer-neon-card-min .timer-neon-inner {
+  box-shadow: inset 0 0 10px rgba(217, 70, 249, 0.65);
+}
+
+.timer-neon-card-sec {
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.5);
+}
+.timer-neon-card-sec::before {
+  background: conic-gradient(
+    from 0deg,
+    transparent 15%,
+    #fca5a5 35%,
+    #f43f5e 50%,
+    #e11d48 65%,
+    transparent 85%
+  );
+}
+.timer-neon-card-sec .timer-neon-inner {
+  box-shadow: inset 0 0 10px rgba(244, 63, 94, 0.7);
+}
+
+.timer-neon-inner {
+  position: relative;
+  z-index: 1;
+  background: #16062f; /* Premium royal dark purple background to eliminate black */
+  border-radius: calc(0.75rem - 1.8px);
+  width: 100%;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+/* Custom logo-specific neon rotating card with continuous full-circle rainbow glow and inset inner neon glow */
+.logo-neon-card {
+  position: relative;
+  overflow: hidden;
+  padding: 2px; /* Precision border thickness */
+  background: #120524;
+  border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.35);
+  transition: all 0.3s ease;
+}
+
+@keyframes logo-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3.5px) rotate(1deg); /* subtle floating wiggle for the logo badge */
+  }
+}
+
+.logo-neon-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 320%;
+  height: 320%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 150deg,
+    transparent 15%,
+    #a855f7 35%,
+    #d8b4fe 50%,
+    #8b5cf6 65%,
+    transparent 85%
+  );
+  animation: neon-border-spin 2.5s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.logo-neon-inner {
+  position: relative;
+  z-index: 1;
+  background: #0E0616; /* Clean rich dark purple container matching the header background */
+  border-radius: calc(0.75rem - 2px);
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 12px rgba(168, 85, 247, 0.95), inset 0 0 5px rgba(236, 72, 153, 0.6);
+  transition: all 0.3s ease;
+}
+
+.logo-neon-inner:hover {
+  box-shadow: inset 0 0 18px rgba(168, 85, 247, 1), inset 0 0 9px rgba(236, 72, 153, 0.8);
+}
+
+/* Print CSS Media query to support elegant monochrome ink-safe invoice download/printing */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Hide all interactive components except the dedicated printable invoice container */
+  body > *:not(#invoice-print-container) {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  #invoice-print-container {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 30px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+
+/* 🌀 Infinite Auto-Sliding Marquee Keyframes & Utilities */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marquee-scroll-reverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0%);
+  }
+}
+
+.animate-marquee-slow {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 42s linear infinite;
+}
+
+.animate-marquee-slow-reverse {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll-reverse 42s linear infinite;
+}
+
+/* Marquee scrolling continues without pausing on hover/tap */
+
+/* 🌀 Animated Floating Buttons with Dynamic Outline Flow & Inner Glow */
+@keyframes button-float-prime {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes button-float-second {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes border-rainbow-spin {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.floating-cta-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.8px; /* Border thickness for premium outline */
+  border-radius: 14px;
+  background: linear-gradient(135deg, #a855f7, #3b0764, #d8b4fe, #1e073c, #a855f7);
+  background-size: 300% 300%;
+  animation: border-rainbow-spin 4s linear infinite;
+  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.35), 0 0 15px rgba(168, 85, 247, 0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.floating-cta-primary:hover {
+  transform: translateY(-3px) scale(1.035) !important;
+  box-shadow: 0 10px 30px rgba(168, 85, 247, 0.5), 0 0 25px rgba(192, 132, 252, 0.4);
+}
+
+.floating-cta-primary:active,
+.floating-cta-primary:focus {
+  box-shadow: none !important;
+  transform: translateY(0) scale(0.98) !important;
+}
+
+.floating-cta-secondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.8px; /* Border thickness for premium outline */
+  border-radius: 14px;
+  background: linear-gradient(135deg, #8b5cf6, #1e073c, #c084fc, #3b0764, #8b5cf6);
+  background-size: 300% 300%;
+  animation: border-rainbow-spin 5s linear infinite;
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.2), 0 0 10px rgba(139, 92, 246, 0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.floating-cta-secondary:hover {
+  transform: translateY(-3px) scale(1.035) !important;
+  box-shadow: 0 10px 28px rgba(139, 92, 246, 0.45), 0 0 20px rgba(192, 132, 252, 0.35);
+}
+
+.floating-cta-secondary:active,
+.floating-cta-secondary:focus {
+  box-shadow: none !important;
+  transform: translateY(0) scale(0.98) !important;
+}
+
+.floating-inner-content-primary {
+  background: linear-gradient(135deg, #2b084e 0%, #47107c 50%, #20043c 100%);
+  border-radius: 12.2px;
+  padding: 13.5px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, 0.3), inset 0 -3px 8px rgba(0, 0, 0, 0.5), inset 0 0 14px rgba(168, 85, 247, 0.5); /* Glossy shadow + Inner glow */
+  transition: all 0.3s ease;
+}
+
+.floating-inner-content-secondary {
+  background: linear-gradient(135deg, #20053b 0%, #3e0c6e 50%, #15022a 100%);
+  border-radius: 12.2px;
+  padding: 13.5px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  color: #cbd5e1;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -3px 8px rgba(0, 0, 0, 0.5), inset 0 0 14px rgba(139, 92, 246, 0.4); /* Glossy shadow + Inner glow */
+  transition: all 0.3s ease;
+}
+
+.floating-cta-primary:hover .floating-inner-content-primary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b0a68 0%, #5d179f 50%, #2f0756 100%);
+  box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, 0.4), inset 0 -3px 8px rgba(0, 0, 0, 0.4), inset 0 0 22px rgba(216, 180, 254, 0.65); /* Rich pink/fuchsia shadow on hover */
+}
+
+.floating-cta-secondary:hover .floating-inner-content-secondary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2e0854 0%, #51118e 50%, #220340 100%);
+  box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, 0.35), inset 0 -3px 8px rgba(0, 0, 0, 0.4), inset 0 0 22px rgba(192, 132, 252, 0.55); /* Violet-indigo inner glow on hover */
+}
+
+/* 📱 Social Media Floating Cards & Inset Glows */
+@keyframes social-float {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+.social-square-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  padding: 3.5px; /* Premium bold outline thickness */
+  border-radius: 18px; /* Square shape with rounded corners */
+  overflow: hidden; /* Clips the rotating glow perfectly to the rounded square card */
+  animation: social-float 5.2s ease-in-out infinite;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Base rotating neon loop layer */
+.social-square-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  height: 250%;
+  transform: translate(-50%, -50%);
+  animation: neon-border-spin 4s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Custom bold & glossy rotating neon loops for individual platforms */
+.social-square-fb::before {
+  background: conic-gradient(
+    from 150deg,
+    #1877f2,
+    #3b82f6,
+    #00f2fe,
+    #3b82f6,
+    #1877f2
+  );
+}
+
+.social-square-ig::before {
+  background: conic-gradient(
+    from 150deg,
+    #feda75,
+    #fa7e1e,
+    #d62976,
+    #962fbf,
+    #4f5bd5,
+    #feda75
+  );
+  animation-duration: 3.5s;
+}
+
+.social-square-wa::before {
+  background: conic-gradient(
+    from 150deg,
+    #25d366,
+    #059669,
+    #34d399,
+    #059669,
+    #25d366
+  );
+  animation-duration: 3.8s;
+}
+
+/* Base card shadows and offsets in standard state */
+.social-square-fb {
+  box-shadow: 0 5px 20px rgba(24, 119, 242, 0.15), 0 0 10px rgba(59, 130, 246, 0.1);
+}
+
+.social-square-ig {
+  box-shadow: 0 5px 20px rgba(220, 39, 67, 0.15), 0 0 10px rgba(236, 72, 153, 0.1);
+}
+
+.social-square-wa {
+  box-shadow: 0 5px 20px rgba(37, 211, 102, 0.15), 0 0 10px rgba(74, 222, 128, 0.1);
+}
+
+/* Outstanding high-performance hover configurations with intense glowing loop expansion */
+.social-square-fb:hover {
+  transform: translateY(-9px) scale(1.08) !important;
+  box-shadow: 0 15px 35px rgba(24, 119, 242, 0.5), 0 0 25px rgba(59, 130, 246, 0.4);
+}
+
+.social-square-ig:hover {
+  transform: translateY(-9px) scale(1.08) !important;
+  box-shadow: 0 15px 35px rgba(220, 39, 67, 0.5), 0 0 25px rgba(236, 72, 153, 0.4);
+}
+
+.social-square-wa:hover {
+  transform: translateY(-9px) scale(1.08) !important;
+  box-shadow: 0 15px 35px rgba(37, 211, 102, 0.5), 0 0 25px rgba(74, 222, 128, 0.4);
+}
+
+/* Core premium solid inside containers with customizable deep inner ambient glows */
+.social-square-inner {
+  background: #0d041b; /* Matches general professional dashboard background */
+  border-radius: 15.5px; /* Aligns neatly within the 18px rounded parent */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  position: relative;
+  z-index: 10; /* Mask top of the rotating before layer */
+  transition: all 0.3s ease;
+}
+
+/* Outline inner glows to make them look glossy and professional */
+.fb-inner-glow {
+  box-shadow: inset 0 0 18px rgba(24, 119, 242, 0.45);
+}
+
+.ig-inner-glow {
+  box-shadow: inset 0 0 18px rgba(236, 72, 153, 0.45);
+}
+
+.wa-inner-glow {
+  box-shadow: inset 0 0 18px rgba(37, 211, 102, 0.45);
+}
+
+/* Hover inner glow intensifying transformations */
+.social-square-fb:hover .fb-inner-glow {
+  background: #110825;
+  box-shadow: inset 0 0 28px rgba(59, 130, 246, 0.75), inset 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.social-square-ig:hover .ig-inner-glow {
+  background: #110825;
+  box-shadow: inset 0 0 28px rgba(236, 72, 153, 0.75), inset 0 0 10px rgba(236, 72, 153, 0.3);
+}
+
+.social-square-wa:hover .wa-inner-glow {
+  background: #110825;
+  box-shadow: inset 0 0 28px rgba(37, 211, 102, 0.75), inset 0 0 10px rgba(37, 211, 102, 0.3);
+}
+
+/* Custom Capsule Review Card styles - Neon outline glossy loops and inner glows */
+.review-capsule-card {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px; /* Solid outline thickness matching other neon cards */
+  border-radius: 9999px; /* Absolute Capsule shape */
+  overflow: hidden; /* Clips the rotating neon gradient inside */
+  background: transparent; /* Transparent parent, let inner mask center completely */
+  box-shadow: none; /* No outer glow under or around the card */
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* Base rotating neon loop layer for capsule cards, matching why-choose-us-neon-card */
+.review-capsule-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  height: 250%;
+  transform: translate(-50%, -50%) translate3d(0, 0, 0);
+  background: conic-gradient(
+    from 150deg,
+    transparent 15%,
+    #c084fc 35%,
+    #e879f9 50%,
+    #a855f7 65%,
+    transparent 85%
+  );
+  animation: neon-border-spin 4.5s linear infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Hover configurations for glowing capsule */
+.review-capsule-card:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: none; /* Absolutely no outer glow on hover, click or tap */
+}
+
+/* Inside container to mask the background rotate layer */
+.review-capsule-inner {
+  background: #110624; /* Seamless dark inner masking matching why choose us */
+  border-radius: 9999px; /* Absolute capsule shape */
+  position: relative;
+  z-index: 2; /* Match z-index layer to stay above the rotating pseudo-element */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 10px 22px; /* Smooth padding inside capsule */
+  box-shadow: inset 0 0 12px rgba(168, 85, 247, 0.45); /* Outline Inner glow */
+  transition: all 0.3s ease;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+.review-capsule-card:hover .review-capsule-inner {
+  background: #15082d;
+  box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.65); /* Rich purple inner glow on hover */
+}
+
+/* Team Card Rotating Neon Outer styles, perfectly matching avexon metrics */
+.team-neon-card {
+  position: relative;
+  border-radius: 1rem; /* rounded-2xl */
+  padding: 2.2px; /* fine border thickness */
+  overflow: hidden;
+  background: #0f0620;
+  box-shadow: none; /* No outer/under glow beneath the card */
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate3d(0, 0, 0);
+}
+
+.team-neon-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  height: 250%;
+  transform: translate(-50%, -50%) translate3d(0, 0, 0);
+  background: conic-gradient(
+    from 150deg,
+    transparent 15%,
+    #c084fc 35%,
+    #e879f9 50%,
+    #a855f7 65%,
+    transparent 85%
+  );
+  animation: neon-border-spin 5s linear infinite;
+  will-change: transform;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.team-neon-inner {
+  position: relative;
+  z-index: 1;
+  background: #110521;
+  border-radius: calc(1rem - 2.2px);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: inset 0 0 12px rgba(168, 85, 247, 0.45); /* Rich outline inner glow */
+  transition: all 0.3s ease;
+}
+
+.team-neon-card:hover {
+  box-shadow: none; /* Keep under/outer shadow disabled on hover */
+}
+
+.team-neon-card:hover .team-neon-inner {
+  background: #15082d;
+  box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.65); /* Rich purple inner glow on hover */
+}
+
+/* Team Photo Rotating Neon Outer styles */
+.team-photo-neon-card {
+  position: relative;
+  border-radius: 0.75rem; /* rounded-xl */
+  padding: 1.8px; /* fine border thickness */
+  overflow: hidden;
+  background: #0d041c;
+  box-shadow: none; /* No outer glow around photo card */
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate3d(0, 0, 0);
+}
+
+.team-photo-neon-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 280%;
+  height: 280%;
+  transform: translate(-50%, -50%) translate3d(0, 0, 0);
+  background: conic-gradient(
+    from 150deg,
+    transparent 15%,
+    #a855f7 35%,
+    #f3e8ff 50%,
+    #e879f9 65%,
+    transparent 85%
+  );
+  animation: neon-border-spin 4s linear infinite;
+  will-change: transform;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.team-photo-neon-inner {
+  position: relative;
+  z-index: 1;
+  background: #000000;
+  border-radius: calc(0.75rem - 1.8px);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: inset 0 0 10px rgba(168, 85, 247, 0.6); /* Rich inner glow outline for team photo */
+  transition: all 0.3s ease;
+}
+
+.team-photo-neon-card:hover {
+  box-shadow: none; /* Keep outer shadow disabled on hover */
+}
+
+.team-photo-neon-card:hover .team-photo-neon-inner {
+  box-shadow: inset 0 0 16px rgba(168, 85, 247, 0.85); /* Accentuated photo inner glow outline on hover */
+}
+
+/* Universal GPU Hardware Acceleration & Cross-Device Smooth Performance overrides */
+.neon-card-border-container::before,
+.why-choose-us-neon-card::before,
+.track-btn-neon::before,
+.tracker-neon-card::before,
+.timer-neon-card::before,
+.offer-neon-card::before,
+.logo-neon-card::before,
+.review-capsule-card::before,
+.team-neon-card::before,
+.team-photo-neon-card::before {
+  will-change: transform;
+}
+
+/* Ensure smooth inertial scrolling for true scroll containers and custom scrollbars */
+.overflow-y-auto,
+.overflow-x-auto,
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Disable delayed touch checks for quick-tap experience on Safari and Chrome mobile */
+button, 
+aria-button,
+a, 
+input, 
+select, 
+textarea,
+[role="button"] {
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Prevent image flickering and stretching during dynamic viewport changes */
+img {
+  image-rendering: -webkit-optimize-contrast;
+}
