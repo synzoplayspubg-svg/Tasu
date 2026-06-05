@@ -33,53 +33,37 @@ if (typeof window !== "undefined") {
     const originalFetch = window.fetch;
     if (originalFetch) {
       let absoluteBaseUrl = "";
-      
-      // Try resolving absolute base from window location
+
+      // 1. Check window.location.origin if it is a valid Cloud Run or localhost origin
       try {
-        const hostname = window.location.hostname || "";
-        const isCloudRun = hostname.includes(".run.app") || hostname.includes("localhost") || hostname.includes("127.0.0.1") || hostname.startsWith("192.168.");
-        
-        if (!isCloudRun) {
-          // Keep the persistent Cloud Run backend URL as the default for statically hosted sites (Netlify, Vercel, etc.)
-          absoluteBaseUrl = "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app";
-        } else {
-          const origin = window.location.origin;
-          if (origin && origin !== "null" && origin.startsWith("http")) {
+        const origin = window.location.origin;
+        if (origin && origin !== "null" && origin.startsWith("http")) {
+          const isCloudRun = origin.includes(".run.app") || origin.includes("localhost") || origin.includes("127.0.0.1") || origin.includes("192.168.");
+          if (isCloudRun) {
             absoluteBaseUrl = origin;
           }
         }
       } catch (_) {}
 
-      // Fallback 1: Resolve from window location href
+      // 2. Check import.meta.url for a valid Cloud Run origin (extremely resilient in sandboxed iframes!)
       if (!absoluteBaseUrl) {
         try {
-          const href = window.location.href;
-          if (href && href.startsWith("http")) {
-            const match = href.match(/^(https?:\/\/[^\/]+)/);
+          const metaUrl = import.meta.url;
+          if (metaUrl && metaUrl.startsWith("http") && (metaUrl.includes(".run.app") || metaUrl.includes("localhost"))) {
+            const match = metaUrl.match(/^(https?:\/\/[^\/]+)/);
             if (match) absoluteBaseUrl = match[1];
           }
         } catch (_) {}
       }
 
-      // Fallback 2: Resolve from document.URL or baseURI (these never block or throw cross-origin SecurityErrors in sandboxed iframes!)
-      if (!absoluteBaseUrl) {
-        try {
-          const docUrl = document.URL || document.baseURI;
-          if (docUrl && docUrl.startsWith("http")) {
-            const match = docUrl.match(/^(https?:\/\/[^\/]+)/);
-            if (match) absoluteBaseUrl = match[1];
-          }
-        } catch (_) {}
-      }
-
-      // Fallback 3: Search DOM tags (scripts and stylesheets) for active .run.app hosting URLs
+      // 3. Search DOM tags (scripts and stylesheets) for active .run.app hosting URLs
       if (!absoluteBaseUrl) {
         try {
           const runAppRegex = /^(https?:\/\/[a-z0-9\-]+\.asia-southeast1\.run\.app)/i;
           const scripts = document.getElementsByTagName("script");
           for (let i = 0; i < scripts.length; i++) {
             const src = scripts[i].src;
-            if (src) {
+            if (src && runAppRegex.test(src)) {
               const match = src.match(runAppRegex);
               if (match) {
                 absoluteBaseUrl = match[1];
@@ -91,7 +75,7 @@ if (typeof window !== "undefined") {
             const links = document.getElementsByTagName("link");
             for (let i = 0; i < links.length; i++) {
               const href = links[i].href;
-              if (href) {
+              if (href && runAppRegex.test(href)) {
                 const match = href.match(runAppRegex);
                 if (match) {
                   absoluteBaseUrl = match[1];
@@ -103,7 +87,20 @@ if (typeof window !== "undefined") {
         } catch (_) {}
       }
 
-      // Fallback 4: Hardcoded system configuration parameters specifically matching this live preview sandbox run!
+      // 4. Check document.referrer to see if it is a valid Cloud Run URL or is from google ai studio
+      if (!absoluteBaseUrl) {
+        try {
+          const referrer = document.referrer;
+          if (referrer && referrer.startsWith("http") && (referrer.includes(".run.app") || referrer.includes("ai.studio"))) {
+            const match = referrer.match(/^(https?:\/\/[^\/]+)/);
+            if (match && match[1].includes(".run.app")) {
+              absoluteBaseUrl = match[1];
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 5. Hardcoded system configuration parameters specifically matching this live preview sandbox run!
       if (!absoluteBaseUrl) {
         try {
           const containerId = "ipuxpftgfhnjhuotjs5q4d-34985570118";
@@ -113,31 +110,42 @@ if (typeof window !== "undefined") {
         } catch (_) {}
       }
 
-      // Fallback 5: Resolve from import.meta.url (Vite bundle origin - extremely resilient inside sandboxed frames!)
+      // 6. Generic window.location.href or document.URL check
       if (!absoluteBaseUrl) {
         try {
-          const metaUrl = import.meta.url;
-          if (metaUrl && metaUrl.startsWith("http")) {
-            const match = metaUrl.match(/^(https?:\/\/[^\/]+)/);
+          const href = window.location.href;
+          if (href && href.startsWith("http")) {
+            const match = href.match(/^(https?:\/\/[^\/]+)/);
             if (match) absoluteBaseUrl = match[1];
           }
         } catch (_) {}
       }
 
-      // Fallback 6: Resolve from document.referrer
+      // 7. Last resort default fallback (pre backend)
       if (!absoluteBaseUrl) {
-        try {
-          const referrer = document.referrer;
-          if (referrer && referrer.startsWith("http") && !referrer.includes("ai.studio")) {
-            const match = referrer.match(/^(https?:\/\/[^\/]+)/);
-            if (match) absoluteBaseUrl = match[1];
-          }
-        } catch (_) {}
+        absoluteBaseUrl = "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app";
       }
 
-      const customFetch = function (input: RequestInfo | URL, init?: RequestInit) {
+      // Expose active backend URL globally for tools/admin panel to reference
+      let activeBaseUrl = absoluteBaseUrl || "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app";
+      (window as any).__avexon_active_backend_url = activeBaseUrl;
+
+      const getSwappedUrl = (urlStr: string): string | null => {
+        if (urlStr.includes("-pre-")) {
+          return urlStr.replace("-pre-", "-dev-");
+        } else if (urlStr.includes("-dev-")) {
+          return urlStr.replace("-dev-", "-pre-");
+        }
+        return null;
+      };
+
+      const customFetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+        let isRelative = false;
+        let originalInput = input;
+
         if (typeof input === "string" && input.startsWith("/") && !input.startsWith("//")) {
-          let targetBaseUrl = absoluteBaseUrl;
+          isRelative = true;
+          let targetBaseUrl = activeBaseUrl;
           try {
             const configuredUrl = window.localStorage.getItem("avexon_api_backend_url");
             if (configuredUrl && configuredUrl.trim()) {
@@ -149,8 +157,55 @@ if (typeof window !== "undefined") {
             input = cleanBaseUrl + input;
           }
         }
-        // Call standard fetch explicitly with window context to avoid raw 'illegal invocation' browser errors
-        return originalFetch.call(window, input, init);
+
+        // Call original fetch on the determined target URL
+        try {
+          const response = await originalFetch.call(window, input, init);
+
+          // Self-healing: if response is 404, 502, 503, or 504 and it targets a Cloud Run server
+          if ((response.status === 404 || response.status >= 502) && typeof input === "string" && input.includes(".run.app")) {
+            const swappedInput = getSwappedUrl(input);
+            if (swappedInput) {
+              console.warn(`[Self-Healing Fetch] URL ${input} returned status ${response.status}. Retrying transparently with swapped domain: ${swappedInput}`);
+              try {
+                const retryResponse = await originalFetch.call(window, swappedInput, init);
+                if (retryResponse.ok || retryResponse.status < 400) {
+                  const matchedOrigin = swappedInput.match(/^(https?:\/\/[^\/]+)/);
+                  if (matchedOrigin) {
+                    activeBaseUrl = matchedOrigin[1];
+                    (window as any).__avexon_active_backend_url = activeBaseUrl;
+                    console.log(`[Self-Healing Fetch] Swapped active backend URL updated: ${activeBaseUrl}`);
+                  }
+                  return retryResponse;
+                }
+              } catch (retryErr) {
+                console.error("[Self-Healing Fetch] Swapped retry fallback also failed:", retryErr);
+              }
+            }
+          }
+          return response;
+        } catch (fetchError) {
+          // If the network request failed completely (e.g. DNS error or offline)
+          if (typeof input === "string" && input.includes(".run.app")) {
+            const swappedInput = getSwappedUrl(input);
+            if (swappedInput) {
+              console.warn(`[Self-Healing Fetch] Network exception for ${input}. Retrying with swapped domain: ${swappedInput}`, fetchError);
+              try {
+                const retryResponse = await originalFetch.call(window, swappedInput, init);
+                const matchedOrigin = swappedInput.match(/^(https?:\/\/[^\/]+)/);
+                if (matchedOrigin) {
+                  activeBaseUrl = matchedOrigin[1];
+                  (window as any).__avexon_active_backend_url = activeBaseUrl;
+                  console.log(`[Self-Healing Fetch] Swapped active backend URL updated after network retry: ${activeBaseUrl}`);
+                }
+                return retryResponse;
+              } catch (retryErr) {
+                console.error("[Self-Healing Fetch] Swapped retry fallback failed after initial network exception:", retryErr);
+              }
+            }
+          }
+          throw fetchError;
+        }
       };
 
       try {

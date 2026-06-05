@@ -7391,13 +7391,14 @@ create policy "Allow all actions" on public.avexon_content for all using (true) 
                           <p className="font-semibold text-purple-400">🚨 আপনার বর্তমান রানিং ব্যাকএন্ড ইউআরএল:</p>
                           <div className="flex items-center justify-between gap-3 bg-black/40 p-2.5 rounded-lg border border-purple-500/5 font-mono text-[10.5px]">
                             <span className="text-cyan-300 select-all break-all">
-                              {typeof window !== "undefined" ? window.location.origin : ""}
+                              {typeof window !== "undefined" ? ((window as any).__avexon_active_backend_url || "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app") : ""}
                             </span>
                             <button
                               type="button"
                               onClick={() => {
                                 if (typeof window !== "undefined") {
-                                  navigator.clipboard.writeText(window.location.origin);
+                                  const urlToCopy = (window as any).__avexon_active_backend_url || "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app";
+                                  navigator.clipboard.writeText(urlToCopy);
                                   triggerSuccessAlert("ব্যাকএন্ড ইউআরএল ক্লিপবোর্ডে কপি হয়েছে!");
                                 }
                               }}
