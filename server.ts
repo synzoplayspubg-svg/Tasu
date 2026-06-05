@@ -483,6 +483,8 @@ async function sendBulkSMS(apiKey: string, senderId: string, number: string, mes
     return null;
   }
 
+  const activeSenderId = senderId && senderId.trim() ? senderId.trim() : "8809617620304";
+
   // Auto-resolve custom API URL from config database if not passed explicitly as an argument
   let activeApiUrl = customApiUrl;
   if (!activeApiUrl) {
@@ -508,23 +510,23 @@ async function sendBulkSMS(apiKey: string, senderId: string, number: string, mes
 
     if (hasPlaceholders) {
       url = tempUrl
-        .replace(/\[API_KEY\]/gi, apiKey)
-        .replace(/\{api_key\}/gi, apiKey)
-        .replace(/\[SENDER_ID\]/gi, senderId)
-        .replace(/\{sender_id\}/gi, senderId)
-        .replace(/\[NUMBER\]/gi, formattedNumber)
-        .replace(/\{number\}/gi, formattedNumber)
-        .replace(/\[MESSAGE\]/gi, message) // Use raw message style if user's API does encoding, but we safe-encode next or let them handle it. Actually URL template usually requires encoded message, or sometimes we auto-encode. Let's do encodeURIComponent.
-        .replace(/\[MESSAGE\]/gi, encodedMsg)
-        .replace(/\{message\}/gi, encodedMsg);
+         .replace(/\[API_KEY\]/gi, apiKey)
+         .replace(/\{api_key\}/gi, apiKey)
+         .replace(/\[SENDER_ID\]/gi, activeSenderId)
+         .replace(/\{sender_id\}/gi, activeSenderId)
+         .replace(/\[NUMBER\]/gi, formattedNumber)
+         .replace(/\{number\}/gi, formattedNumber)
+         .replace(/\[MESSAGE\]/gi, message) // Use raw message style if user's API does encoding, but we safe-encode next or let them handle it. Actually URL template usually requires encoded message, or sometimes we auto-encode. Let's do encodeURIComponent.
+         .replace(/\[MESSAGE\]/gi, encodedMsg)
+         .replace(/\{message\}/gi, encodedMsg);
     } else {
       // If no placeholders, append standard BulkSMSBD URL query structure automatically
       const separator = tempUrl.includes("?") ? "&" : "?";
-      url = `${tempUrl}${separator}api_key=${encodeURIComponent(apiKey)}&type=text&number=${encodeURIComponent(formattedNumber)}&senderid=${encodeURIComponent(senderId)}&message=${encodedMsg}`;
+      url = `${tempUrl}${separator}api_key=${encodeURIComponent(apiKey)}&type=text&number=${encodeURIComponent(formattedNumber)}&senderid=${encodeURIComponent(activeSenderId)}&message=${encodedMsg}`;
     }
   } else {
     // Default standard BulkSMSBD endpoint
-    url = `http://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(apiKey)}&type=text&number=${encodeURIComponent(formattedNumber)}&senderid=${encodeURIComponent(senderId)}&message=${encodedMsg}`;
+    url = `http://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(apiKey)}&type=text&number=${encodeURIComponent(formattedNumber)}&senderid=${encodeURIComponent(activeSenderId)}&message=${encodedMsg}`;
   }
   
   console.log(`[SMS Gateway] Sending via URL: ${url.replace(apiKey, "HIDDEN_API_KEY")}`);

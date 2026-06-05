@@ -184,7 +184,7 @@ if (typeof window !== "undefined") {
                   return retryResponse;
                 }
               } catch (retryErr) {
-                console.error("[Self-Healing Fetch] Swapped retry fallback also failed:", retryErr);
+                console.warn("[Self-Healing Fetch] Swapped retry fallback also failed (this is normal during server cold starts or restarts):", retryErr);
               }
             }
           }
@@ -205,7 +205,7 @@ if (typeof window !== "undefined") {
                 }
                 return retryResponse;
               } catch (retryErr) {
-                console.error("[Self-Healing Fetch] Swapped retry fallback failed after initial network exception:", retryErr);
+                console.warn("[Self-Healing Fetch] Swapped retry fallback failed after initial network exception (this is normal during server cold starts or restarts):", retryErr);
               }
             }
           }
@@ -225,12 +225,12 @@ if (typeof window !== "undefined") {
             enumerable: true
           });
         } catch (defErr) {
-          console.error("[Safe Fetch] Critical failure: window.fetch is completely read-only or unconfigurable.", defErr);
+          console.warn("[Safe Fetch] Critical notice: window.fetch is completely read-only or unconfigurable.", defErr);
         }
       }
     }
   } catch (globalFetchError) {
-    console.error("[Safe Fetch] Unexpected error setting up window.fetch interceptor:", globalFetchError);
+    console.warn("[Safe Fetch] Unexpected notice setting up window.fetch interceptor:", globalFetchError);
   }
 }
 
