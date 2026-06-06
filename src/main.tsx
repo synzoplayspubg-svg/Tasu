@@ -136,12 +136,23 @@ if (typeof window !== "undefined") {
       (window as any).__avexon_active_backend_url = activeBaseUrl;
 
       // Auto-Heal & Auto-Sync Backend URL:
-      // If we are currently running on a direct Cloud Run or localhost URL (valid server container),
+      // If we are currently running on a direct Cloud Run, Render, or localhost URL (valid server container),
       // we must automatically sync this active domain with "avexon_api_backend_url" in localStorage.
       // This prevents 404/network errors happening due to stale backend URLs lingering from old development containers.
       try {
         const currentOrigin = window.location.origin;
-        if (currentOrigin && currentOrigin.startsWith("http") && (currentOrigin.includes(".run.app") || currentOrigin.includes("localhost") || currentOrigin.includes("127.0.0.1"))) {
+        if (
+          currentOrigin &&
+          currentOrigin.startsWith("http") &&
+          (
+            currentOrigin.includes(".run.app") ||
+            currentOrigin.includes("localhost") ||
+            currentOrigin.includes("127.0.0.1") ||
+            currentOrigin.includes("onrender.com") ||
+            currentOrigin.includes("render.com") ||
+            (typeof window !== "undefined" && window.self === window.top && !document.referrer.includes("ai.studio"))
+          )
+        ) {
           const storedUrl = window.localStorage.getItem("avexon_api_backend_url");
           if (storedUrl !== currentOrigin) {
             console.log(`[Auto-Update Backend] Updating localStorage avexon_api_backend_url from ${storedUrl} to current active origin: ${currentOrigin}`);
@@ -173,7 +184,10 @@ if (typeof window !== "undefined") {
           const isContainerHost = typeof window !== "undefined" && window.location.origin && (
             window.location.origin.includes(".run.app") || 
             window.location.origin.includes("localhost") || 
-            window.location.origin.includes("127.0.0.1")
+            window.location.origin.includes("127.0.0.1") ||
+            window.location.origin.includes("onrender.com") ||
+            window.location.origin.includes("render.com") ||
+            (window.self === window.top && !document.referrer.includes("ai.studio"))
           );
           const isPureLocalUtility = isContainerHost && (input.startsWith("/api/test-sms") || input.startsWith("/api/server-ip"));
           
