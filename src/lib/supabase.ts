@@ -52,6 +52,14 @@ export function initializeSupabase() {
   });
 }
 
+export function getActiveSupabase() {
+  return supabase;
+}
+
+export function getIsSupabaseConfigured() {
+  return isSupabaseConfigured;
+}
+
 // Perform initial initialization on load
 initializeSupabase();
 

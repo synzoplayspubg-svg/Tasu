@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { WebsiteProduct, Service, PortfolioItem, PortfolioCategory, Testimonial, TeamMember, NoticeItem, NoticeConfig, OfferConfig, ContactConfig, PackagePlan, PromoPopupConfig } from "../types";
 import { SERVICES, WEBSITES, PORTFOLIO, TESTIMONIALS, TEAM } from "../data";
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { supabase, isSupabaseConfigured, initializeSupabase, getActiveSupabase, getIsSupabaseConfigured } from "../lib/supabase";
 import { safeLocalStorage } from "../utils/safeStorage";
 
 export interface HeroConfig {
@@ -440,13 +440,42 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       };
 
       try {
+        // Step 0: Fetch current Supabase configurations dynamically from the server at client boot time.
+        // This ensures ANY normal visitor's browser or fresh PWA window instantly auto-heals and connects directly to the Supabase cloud database
+        try {
+          const configRes = await fetch("/api/supabase-config");
+          if (configRes.ok) {
+            const configData = await configRes.json();
+            if (configData && configData.success && configData.config) {
+              const c = configData.config;
+              let changed = false;
+              if (c.VITE_SUPABASE_URL && c.VITE_SUPABASE_URL.trim() !== (safeLocalStorage.getItem("VITE_SUPABASE_URL") || "").trim()) {
+                safeLocalStorage.setItem("VITE_SUPABASE_URL", c.VITE_SUPABASE_URL.trim());
+                changed = true;
+              }
+              if (c.VITE_SUPABASE_ANON_KEY && c.VITE_SUPABASE_ANON_KEY.trim() !== (safeLocalStorage.getItem("VITE_SUPABASE_ANON_KEY") || "").trim()) {
+                safeLocalStorage.setItem("VITE_SUPABASE_ANON_KEY", c.VITE_SUPABASE_ANON_KEY.trim());
+                changed = true;
+              }
+              if (changed) {
+                console.log("[Content DB] Automatically synchronized Supabase credentials from server database configurations.");
+                initializeSupabase();
+              }
+            }
+          }
+        } catch (configErr) {
+          console.warn("[Content DB] Cannot pre-fetch server-side Supabase config:", configErr);
+        }
+
         let loadedData: any = null;
 
         // Step 1: Query Supabase Content Database as the high-priority persistent source
-        if (isSupabaseConfigured && supabase) {
+        const activeSupa = getActiveSupabase();
+        const activeSupaConfigured = getIsSupabaseConfigured();
+        if (activeSupaConfigured && activeSupa) {
           try {
             console.log("[Content DB] Primary load: fetching initial data from Supabase...");
-            const { data: dbData, error } = await supabase
+            const { data: dbData, error } = await activeSupa
               .from("avexon_content")
               .select("*");
 
@@ -482,7 +511,7 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
               };
 
               const seedPromises = Object.entries(defaultsToSeed).map(([k, v]) => {
-                return supabase.from("avexon_content").upsert({ key: k, value: v });
+                return activeSupa.from("avexon_content").upsert({ key: k, value: v });
               });
               await Promise.all(seedPromises);
               loadedData = defaultsToSeed;
@@ -581,8 +610,10 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Setup real-time postgres and broadcast subscription if Supabase was running
-        if (isSupabaseConfigured && supabase) {
-          const liveChan = supabase.channel("avexon_content_realtime");
+        const activeSupaSub = getActiveSupabase();
+        const activeSupaSubConfigured = getIsSupabaseConfigured();
+        if (activeSupaSub && activeSupaSubConfigured) {
+          const liveChan = activeSupaSub.channel("avexon_content_realtime");
           activeChannelRef.current = liveChan;
           subscription = liveChan
             .on(
@@ -707,9 +738,11 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         let freshData: any = null;
 
         // On static hosting like Netlify, fetch from Supabase first as it has CORS enabled and avoids relative domain issues
-        if (isSupabaseConfigured && supabase) {
+        const activeSupaRefresh = getActiveSupabase();
+        const activeSupaRefreshConfigured = getIsSupabaseConfigured();
+        if (activeSupaRefreshConfigured && activeSupaRefresh) {
           try {
-            const { data: dbData, error } = await supabase
+            const { data: dbData, error } = await activeSupaRefresh
               .from("avexon_content")
               .select("*");
             if (!error && dbData && dbData.length > 0) {
@@ -960,10 +993,12 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       contentSyncChannel?.postMessage(updates);
 
       // Synchronously write each updated key to Supabase so socket server broadcasts to other listeners instantly
-      if (isSupabaseConfigured && supabase) {
+      const activeSupaSave = getActiveSupabase();
+      const activeSupaSaveConfigured = getIsSupabaseConfigured();
+      if (activeSupaSaveConfigured && activeSupaSave) {
         const promises = Object.entries(updates).map(async ([key, value]) => {
           if (value !== undefined) {
-            const { error } = await supabase.from("avexon_content").upsert({ key, value });
+            const { error } = await activeSupaSave.from("avexon_content").upsert({ key, value });
             if (error) {
               console.error(`Error saving content key "${key}" to Supabase:`, error);
             } else {
@@ -975,7 +1010,7 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
 
         // Also broadcast the update signal directly over the websocket channel for ultra-responsive, zero-lag rendering
         try {
-          const chan = activeChannelRef.current || supabase.channel("avexon_content_realtime");
+          const chan = activeChannelRef.current || activeSupaSave.channel("avexon_content_realtime");
           if (!activeChannelRef.current) {
             chan.subscribe();
           }
