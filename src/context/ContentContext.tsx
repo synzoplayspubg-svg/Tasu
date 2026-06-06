@@ -411,6 +411,7 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     let safetyTimer: any = null;
 
     const fetchInitialData = async () => {
+      const startTime = Date.now();
       // Force loading screen until fresh data is resolved, with an extended 7000ms safety limit
       setIsLoading(true);
       safetyTimer = setTimeout(() => {
@@ -672,7 +673,18 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         console.warn("Critical block failure inside fetchInitialData:", e);
       } finally {
         if (safetyTimer) clearTimeout(safetyTimer);
-        setIsLoading(false);
+        
+        // Guarantee a minimum loading time of 1400ms to allow React's virtual DOM and assets/fonts to settle beautifully.
+        // This completely eliminates and shields the user from any split-second blank page or default template flickering.
+        const elapsed = Date.now() - startTime;
+        const minDuration = 1400;
+        if (elapsed < minDuration) {
+          setTimeout(() => {
+            setIsLoading(false);
+          }, minDuration - elapsed);
+        } else {
+          setIsLoading(false);
+        }
       }
     };
 

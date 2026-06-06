@@ -86,16 +86,41 @@ export default function App() {
   const [checkoutPreselect, setCheckoutPreselect] = useState("");
   const [checkoutType, setCheckoutType] = useState<'readymade' | 'custom'>('readymade');
   const [checkoutInitialMode, setCheckoutInitialMode] = useState<'checkout' | 'tracking'>('checkout');
-  const [isStandalone, setIsStandalone] = useState(() => {
+  
+  const [isAdminView, setIsAdminView] = useState(() => {
     if (typeof window !== "undefined") {
       return (
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone ||
-        window.location.search.includes("mode=standalone")
+        window.location.pathname === "/admin" ||
+        window.location.pathname.startsWith("/admin/") ||
+        window.location.search.includes("admin=true")
       );
     }
     return false;
   });
+
+  const [isStandalone, setIsStandalone] = useState(() => {
+    if (typeof window !== "undefined") {
+      return (
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone
+      );
+    }
+    return false;
+  });
+
+  // Dynamically synchronize PWA manifest, meta theme, and title based on current routing view
+  useEffect(() => {
+    const linkEl = document.querySelector('link[rel="manifest"]');
+    if (linkEl) {
+      if (isAdminView) {
+        linkEl.setAttribute("href", "/admin-manifest.json");
+        document.title = "Avexon Admin Panel";
+      } else {
+        linkEl.setAttribute("href", "/manifest.json");
+        document.title = "Avexon | Premium Digital Agency & Custom Website Development Solutions";
+      }
+    }
+  }, [isAdminView]);
 
   const handleOpenCheckout = (websiteTitle: string = "", type: 'readymade' | 'custom' = 'readymade') => {
     setCheckoutPreselect(websiteTitle);
@@ -319,14 +344,16 @@ export default function App() {
     );
   }
 
-  // If launched as a standalone PWA application on home screen, render full screen directly
-  if (isStandalone) {
+  // If launched as a standalone Admin App, render full screen directly
+  if (isAdminView) {
     return (
       <div className="bg-gradient-to-b from-[#0A0512] via-[#040108] to-[#010003] text-slate-100 min-h-screen font-sans selection:bg-purple-500/20 selection:text-purple-400">
         <AdminPanel
           isOpen={true}
           isStandalonePWA={true}
-          onClose={() => setIsStandalone(false)}
+          onClose={() => {
+            window.location.href = "/";
+          }}
         />
       </div>
     );
@@ -386,7 +413,7 @@ export default function App() {
       {/* 3. Fully comprehensive Sitemap Footer */}
       <Footer 
         onNavigate={scrollToSection} 
-        onAdminClick={() => setIsStandalone(true)}
+        onAdminClick={() => { window.location.href = "/admin"; }}
       />
 
       {/* Promotion banner popup modal after 2 seconds */}

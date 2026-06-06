@@ -1,8 +1,8 @@
 {
-  "name": "Avexon | Premium Digital Solutions",
-  "short_name": "Avexon",
-  "description": "Premium custom website development, pre-made website solutions, and interactive portals tailored to grow your business.",
-  "start_url": "/",
+  "name": "Avexon Admin Panel",
+  "short_name": "Avexon Admin",
+  "description": "Premium multi-module administrator application for Avexon Digital Agency platform to manage content, websites, services, and live client orders.",
+  "start_url": "/admin",
   "display": "standalone",
   "background_color": "#0A0512",
   "theme_color": "#0A0512",
