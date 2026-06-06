@@ -135,6 +135,21 @@ if (typeof window !== "undefined") {
       let activeBaseUrl = absoluteBaseUrl || "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app";
       (window as any).__avexon_active_backend_url = activeBaseUrl;
 
+      // Auto-Heal & Auto-Sync Backend URL:
+      // If we are currently running on a direct Cloud Run or localhost URL (valid server container),
+      // we must automatically sync this active domain with "avexon_api_backend_url" in localStorage.
+      // This prevents 404/network errors happening due to stale backend URLs lingering from old development containers.
+      try {
+        const currentOrigin = window.location.origin;
+        if (currentOrigin && currentOrigin.startsWith("http") && (currentOrigin.includes(".run.app") || currentOrigin.includes("localhost") || currentOrigin.includes("127.0.0.1"))) {
+          const storedUrl = window.localStorage.getItem("avexon_api_backend_url");
+          if (storedUrl !== currentOrigin) {
+            console.log(`[Auto-Update Backend] Updating localStorage avexon_api_backend_url from ${storedUrl} to current active origin: ${currentOrigin}`);
+            window.localStorage.setItem("avexon_api_backend_url", currentOrigin);
+          }
+        }
+      } catch (_) {}
+
       const getSwappedUrl = (urlStr: string): string | null => {
         if (urlStr.includes("-pre-")) {
           return urlStr.replace("-pre-", "-dev-");

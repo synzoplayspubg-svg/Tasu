@@ -1631,6 +1631,18 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
     }
   }, [isOpen, isStandalonePWA]);
 
+  // Synchronize Backend API Link state with localStorage whenever the admin panel opens
+  useEffect(() => {
+    if (isOpen || isStandalonePWA) {
+      try {
+        const stored = safeLocalStorage.getItem("avexon_api_backend_url") || "";
+        setCustomBackendUrl(stored);
+      } catch (err) {
+        console.warn("[AdminPanel] Failed to sync customBackendUrl from storage:", err);
+      }
+    }
+  }, [isOpen, isStandalonePWA]);
+
   // Load server outgoing public IP for SMS whitelisting
   useEffect(() => {
     if (isOpen || isStandalonePWA) {
