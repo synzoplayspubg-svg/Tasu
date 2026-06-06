@@ -1486,6 +1486,8 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
   const [isSmsTesting, setIsSmsTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [serverIp, setServerIp] = useState<string>("");
+  const [isReloadingIp, setIsReloadingIp] = useState(false);
+  const [isSyncingBackend, setIsSyncingBackend] = useState(false);
 
   // 2. Websites / Services / Portfolio / Testimonial Editing Sub-states
   const [editWebItem, setEditWebItem] = useState<Partial<WebsiteProduct> | null>(null);
@@ -1643,23 +1645,64 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
     }
   }, [isOpen, isStandalonePWA]);
 
+  // Reusable function to fetch server IP
+  const fetchServerIp = async (isManual = false) => {
+    if (isManual) {
+      setIsReloadingIp(true);
+      setServerIp("");
+    }
+    try {
+      const res = await fetch("/api/server-ip");
+      const data = await res.json();
+      if (data && data.success && data.ip) {
+        setServerIp(data.ip);
+        if (isManual) {
+          triggerSuccessAlert("সার্ভার আইপি সফলভাবে রিফ্রেশ/আপডেট হয়েছে!");
+        }
+      } else {
+        console.warn("Server IP API returned or parsed empty/failure, using fallback.");
+        setServerIp("34.34.244.47");
+        if (isManual) {
+          triggerSuccessAlert("সার্ভার আইপি লোড করা অমীমাংসিত রয়েছে (ডিফল্ট ফলব্যাক ব্যবহার করা হয়েছে)।");
+        }
+      }
+    } catch (err: any) {
+      console.error("Error fetching server IP:", err);
+      setServerIp("34.34.244.47");
+      if (isManual) {
+        triggerSuccessAlert("সার্ভার আইপি কানেক্ট করা সম্ভব হয়নি (ডিফল্ট ফলব্যাক ব্যবহার করা হয়েছে)।");
+      }
+    } finally {
+      if (isManual) {
+        setIsReloadingIp(false);
+      }
+    }
+  };
+
+  const autoSyncBackendUrl = () => {
+    setIsSyncingBackend(true);
+    try {
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      if (currentOrigin && currentOrigin.startsWith("http")) {
+        safeLocalStorage.setItem("avexon_api_backend_url", currentOrigin);
+        window.dispatchEvent(new Event("storage"));
+        setCustomBackendUrl(currentOrigin);
+        triggerSuccessAlert("ব্যাকএন্ড সিঙ্ক লিঙ্ক সার্ভার ডোমেইন অনুযায়ী সফলভাবে অটো-আপডেট ও সেভ করা হয়েছে!");
+      } else {
+        triggerSuccessAlert("এক্টিভ লিঙ্ক পাওয়া যায়নি!");
+      }
+    } catch (err) {
+      console.error(err);
+      triggerSuccessAlert("সিঙ্ক আপডেট ব্যর্থ হয়েছে!");
+    } finally {
+      setIsSyncingBackend(false);
+    }
+  };
+
   // Load server outgoing public IP for SMS whitelisting
   useEffect(() => {
     if (isOpen || isStandalonePWA) {
-      fetch("/api/server-ip")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.success && data.ip) {
-            setServerIp(data.ip);
-          } else {
-            console.warn("Server IP API returned or parsed empty/failure, using fallback.");
-            setServerIp("34.34.244.47");
-          }
-        })
-        .catch((err) => {
-          console.error("Error fetching server IP, using fallback:", err);
-          setServerIp("34.34.244.47");
-        });
+      fetchServerIp(false);
     }
   }, [isOpen, isStandalonePWA]);
 
@@ -7409,19 +7452,29 @@ create policy "Allow all actions" on public.avexon_content for all using (true) 
                             <span className="text-cyan-300 select-all break-all">
                               {typeof window !== "undefined" ? ((window as any).__avexon_active_backend_url || "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app") : ""}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (typeof window !== "undefined") {
-                                  const urlToCopy = (window as any).__avexon_active_backend_url || "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app";
-                                  navigator.clipboard.writeText(urlToCopy);
-                                  triggerSuccessAlert("ব্যাকএন্ড ইউআরএল ক্লিপবোর্ডে কপি হয়েছে!");
-                                }
-                              }}
-                              className="shrink-0 px-2.5 py-1 text-[9.5px] font-bold bg-purple-900/60 text-purple-200 hover:bg-purple-800 rounded border border-purple-500/20 transition-all cursor-pointer active:scale-95"
-                            >
-                              📋 কপি করুন
-                            </button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={autoSyncBackendUrl}
+                                className="px-2 py-1 text-[9.5px] font-bold bg-cyan-950/60 text-cyan-300 hover:bg-cyan-900 border border-cyan-500/20 transition-all cursor-pointer active:scale-95 flex items-center gap-1"
+                              >
+                                <RefreshCw className={`w-2.5 h-2.5 ${isSyncingBackend ? 'animate-spin' : ''}`} />
+                                🔄 অটো-সিঙ্ক করুন
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== "undefined") {
+                                    const urlToCopy = (window as any).__avexon_active_backend_url || "https://ais-pre-ipuxpftgfhnjhuotjs5q4d-34985570118.asia-southeast1.run.app";
+                                    navigator.clipboard.writeText(urlToCopy);
+                                    triggerSuccessAlert("ব্যাকএন্ড ইউআরএল ক্লিপবোর্ডে কপি হয়েছে!");
+                                  }
+                                }}
+                                className="px-2.5 py-1 text-[9.5px] font-bold bg-purple-900/60 text-purple-200 hover:bg-purple-800 rounded border border-purple-500/20 transition-all cursor-pointer active:scale-95"
+                              >
+                                📋 কপি করুন
+                              </button>
+                            </div>
                           </div>
                           <p className="text-[9.5px] text-slate-400">
                             * Netlify বা Vercel-এ এই সাইটটির স্ট্যাটিক ভার্সন হোস্ট করার পর তাদের এডমিন প্যানেলে ঢুকে উপরের ইনপুটে এই লিংকটি পেস্ট করে সেভ করে দিলেই আপনার এসএমএস ও রিয়েলটাইম ডাটা সিঙ্ক পুনরায় সচল হয়ে যাবে!
@@ -7445,6 +7498,15 @@ create policy "Allow all actions" on public.avexon_content for all using (true) 
                             className="px-4 py-2 cursor-pointer text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5"
                           >
                             💾 ব্যাকএন্ড সিঙ্ক লিঙ্ক সেভ করুন
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={autoSyncBackendUrl}
+                            className="px-4 py-2 cursor-pointer text-xs font-bold bg-gradient-to-r from-purple-800 to-indigo-800 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingBackend ? 'animate-spin' : ''}`} />
+                            🔄 রানিং লিঙ্ক অটো-সিঙ্ক করুন
                           </button>
 
                           {customBackendUrl && (
@@ -7552,18 +7614,29 @@ create policy "Allow all actions" on public.avexon_content for all using (true) 
                               {serverIp || "লোডিং হচ্ছে..."}
                             </code>
                           </div>
-                          {serverIp && (
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(serverIp);
-                                triggerSuccessAlert("সার্ভার আইপি কপি করা হয়েছে! এখন BulkSMSBD প্যানেলে পেস্ট করুন।");
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/20 hover:bg-amber-500/25 transition-all text-[11px] font-semibold whitespace-nowrap cursor-pointer flex items-center gap-1.5"
+                              type="button"
+                              onClick={() => fetchServerIp(true)}
+                              className="px-3 py-1.5 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/20 hover:bg-purple-500/25 transition-all text-[11px] font-semibold whitespace-nowrap cursor-pointer flex items-center gap-1.5"
                             >
-                              <Copy className="w-3.5 h-3.5" />
-                              আইপি কপি করুন
+                              <RefreshCw className={`w-3.5 h-3.5 ${isReloadingIp ? 'animate-spin' : ''}`} />
+                              রিলোড আইপি
                             </button>
-                          )}
+                            {serverIp && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(serverIp);
+                                  triggerSuccessAlert("সার্ভার আইপি কপি করা হয়েছে! এখন BulkSMSBD প্যানেলে পেস্ট করুন।");
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/20 hover:bg-amber-500/25 transition-all text-[11px] font-semibold whitespace-nowrap cursor-pointer flex items-center gap-1.5"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                                আইপি কপি করুন
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         <div className="space-y-1 text-[10px] text-slate-400 pl-1">
