@@ -4,44 +4,11 @@ import { useContent } from "../context/ContentContext";
 
 interface FooterProps {
   onNavigate: (sectionId: string) => void;
-  onAdminClick?: () => void;
-  onTriggerAdmin?: () => void;
 }
 
-export default function Footer({ onNavigate, onAdminClick, onTriggerAdmin }: FooterProps) {
+export default function Footer({ onNavigate }: FooterProps) {
   const { contactConfig, hero, logoUrl, headerBranding } = useContent();
-  const clickCountRef = React.useRef(0);
-  const clickTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const [activeLegalTab, setActiveLegalTab] = React.useState<'terms' | 'policy' | 'cookies' | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (clickTimeoutRef.current) {
-        clearTimeout(clickTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleAvexonStudioClick = () => {
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-    }
-    
-    clickCountRef.current += 1;
-    if (clickCountRef.current >= 3) {
-      clickCountRef.current = 0;
-      if (onTriggerAdmin) {
-        onTriggerAdmin();
-      } else if (onAdminClick) {
-        onAdminClick();
-      }
-    } else {
-      // Reset click count after 2s of inactivity
-      clickTimeoutRef.current = setTimeout(() => {
-        clickCountRef.current = 0;
-      }, 2000);
-    }
-  };
 
   const handleItemClick = (id: string) => {
     onNavigate(id);
@@ -62,7 +29,6 @@ export default function Footer({ onNavigate, onAdminClick, onTriggerAdmin }: Foo
               className="flex items-center gap-2.5 cursor-pointer group" 
               onClick={(e) => {
                 handleItemClick("hero");
-                handleAvexonStudioClick();
               }}
             >
               <div 
@@ -181,28 +147,8 @@ export default function Footer({ onNavigate, onAdminClick, onTriggerAdmin }: Foo
         {/* Legal copyrights block */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-xs text-slate-500">
           <div>
-            <p className="font-sans select-none">
-              ©{" "}
-              <span 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAvexonStudioClick();
-                }} 
-                className="cursor-pointer hover:text-purple-400 font-bold transition-colors duration-200 active:scale-95 inline-block"
-                title="Admin Gateway"
-              >
-                {new Date().getFullYear()}
-              </span>{" "}
-              <span 
-                className="tracking-tight font-logo"
-                style={{ fontFamily: headerBranding.fontFamily || (headerBranding.customFontUrl ? "CustomUploadedFont" : undefined) }}
-              >
-                {headerBranding.brandName || "Avexon"}{" "}
-                <span className="bg-gradient-to-r from-purple-400 to-fuchsia-300 bg-clip-text text-transparent">
-                  bd
-                </span>
-              </span>
-              . সর্বস্বত্ব সংরক্ষিত।
+            <p className="font-sans select-none" style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}>
+              © 2026 Avexon BD. সর্বস্বত্ব সংরক্ষিত
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">

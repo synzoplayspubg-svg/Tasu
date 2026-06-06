@@ -2,7 +2,7 @@
   "name": "Avexon | Premium Digital Solutions",
   "short_name": "Avexon",
   "description": "Premium custom website development, pre-made website solutions, and interactive portals tailored to grow your business.",
-  "start_url": "/",
+  "start_url": "/?pwa=true",
   "display": "standalone",
   "background_color": "#0A0512",
   "theme_color": "#0A0512",

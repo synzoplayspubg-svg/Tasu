@@ -87,22 +87,13 @@ export default function App() {
   const [checkoutType, setCheckoutType] = useState<'readymade' | 'custom'>('readymade');
   const [checkoutInitialMode, setCheckoutInitialMode] = useState<'checkout' | 'tracking'>('checkout');
   
-  const [isAdminView, setIsAdminView] = useState(() => {
-    if (typeof window !== "undefined") {
-      return (
-        window.location.pathname === "/admin" ||
-        window.location.pathname.startsWith("/admin/") ||
-        window.location.search.includes("admin=true")
-      );
-    }
-    return false;
-  });
-
   const [isStandalone, setIsStandalone] = useState(() => {
     if (typeof window !== "undefined") {
       return (
         window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone
+        (window.navigator as any).standalone ||
+        window.location.search.includes("pwa=true") ||
+        window.location.search.includes("admin=true")
       );
     }
     return false;
@@ -112,15 +103,14 @@ export default function App() {
   useEffect(() => {
     const linkEl = document.querySelector('link[rel="manifest"]');
     if (linkEl) {
-      if (isAdminView) {
-        linkEl.setAttribute("href", "/admin-manifest.json");
-        document.title = "Avexon Admin Panel";
-      } else {
-        linkEl.setAttribute("href", "/manifest.json");
-        document.title = "Avexon | Premium Digital Agency & Custom Website Development Solutions";
-      }
+      linkEl.setAttribute("href", "/manifest.json");
     }
-  }, [isAdminView]);
+    if (isStandalone) {
+      document.title = "Avexon Admin Panel";
+    } else {
+      document.title = "Avexon | Premium Digital Agency & Custom Website Development Solutions";
+    }
+  }, [isStandalone]);
 
   const handleOpenCheckout = (websiteTitle: string = "", type: 'readymade' | 'custom' = 'readymade') => {
     setCheckoutPreselect(websiteTitle);
@@ -345,7 +335,7 @@ export default function App() {
   }
 
   // If launched as a standalone Admin App, render full screen directly
-  if (isAdminView) {
+  if (isStandalone) {
     return (
       <div className="bg-gradient-to-b from-[#0A0512] via-[#040108] to-[#010003] text-slate-100 min-h-screen font-sans selection:bg-purple-500/20 selection:text-purple-400">
         <AdminPanel
@@ -413,7 +403,6 @@ export default function App() {
       {/* 3. Fully comprehensive Sitemap Footer */}
       <Footer 
         onNavigate={scrollToSection} 
-        onAdminClick={() => { window.location.href = "/admin"; }}
       />
 
       {/* Promotion banner popup modal after 2 seconds */}
