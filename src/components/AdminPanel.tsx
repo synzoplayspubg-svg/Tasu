@@ -4622,7 +4622,7 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {services.map((s) => (
+                        {(services || []).map((s) => (
                           <div key={s.id} className="bg-[#0e051d] border border-purple-500/10 p-4 rounded-2xl flex items-center justify-between">
                             <div>
                               <h4 className="text-xs font-bold text-slate-100">{s.title}</h4>
@@ -4742,7 +4742,7 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans">
-                        {testimonials.map((t) => (
+                        {(testimonials || []).map((t) => (
                           <div key={t.id} className="bg-[#0e051d] border border-purple-500/10 p-4 rounded-2xl flex items-center justify-between font-sans">
                             <div className="flex items-center gap-3">
                               <img src={t.avatarUrl} alt="" className="w-11 h-11 rounded-full object-cover" />
@@ -5026,7 +5026,7 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {team.map((t) => (
+                        {(team || []).map((t) => (
                           <div key={t.id} className="bg-[#0e051d] border border-purple-500/10 p-4 rounded-2xl flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <img src={t.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover" />
@@ -5169,7 +5169,7 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
                                 className="w-full bg-[#110724] border border-purple-500/10 text-slate-100 rounded-xl px-4 py-2.5 text-xs focus:outline-none"
                               >
                                 <option value="">-- ক্যাটাগরি সিলেক্ট করুন --</option>
-                                {portfolioCategories.map(cat => (
+                                {(portfolioCategories || []).map(cat => (
                                   <option key={cat.id} value={cat.id}>{cat.label} {cat.active ? '' : '(অফ)'}</option>
                                 ))}
                                 <option value="custom">-- নিজস্ব নতুন ক্যাটাগরি লিখুন --</option>
@@ -5348,9 +5348,9 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
                         </div>
 
                         <div className="space-y-3">
-                          <h4 className="text-xs font-bold text-slate-400">বিদ্যমান ক্যাটাগরি তালিকা ({portfolioCategories.length})</h4>
+                          <h4 className="text-xs font-bold text-slate-400">বিদ্যমান ক্যাটাগরি তালিকা ({(portfolioCategories || []).length})</h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {portfolioCategories.map((cat) => {
+                            {(portfolioCategories || []).map((cat) => {
                               const isEditing = editingCatId === cat.id;
                               return (
                                 <div 

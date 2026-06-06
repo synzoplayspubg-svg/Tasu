@@ -410,272 +410,142 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     let safetyTimer: any = null;
 
     const fetchInitialData = async () => {
-      // Force loading screen until fresh data is resolved, with a 4500ms safety limit
+      // Force loading screen until fresh data is resolved, with an extended 7000ms safety limit
       setIsLoading(true);
       safetyTimer = setTimeout(() => {
         setIsLoading(false);
-      }, 4500);
+      }, 7000);
 
-      try {
-        if (isSupabaseConfigured && supabase) {
-          // Fetch all content pieces from Supabase public table 'avexon_content'
-          const { data: dbData, error } = await supabase
-            .from("avexon_content")
-            .select("*");
-
-          if (!error && dbData && dbData.length > 0) {
-            const dbMap: Record<string, any> = {};
-            dbData.forEach((row: any) => {
-              dbMap[row.key] = row.value;
-            });
-
-            if (dbMap.hero) setHeroConfig(dbMap.hero);
-            if (dbMap.owner) setOwner(dbMap.owner);
-            if (dbMap.services) setServices(dbMap.services);
-            if (dbMap.websites) setWebsites(dbMap.websites);
-            if (dbMap.portfolio) setPortfolio(dbMap.portfolio);
-            if (dbMap.portfolioCategories) setPortfolioCategories(dbMap.portfolioCategories);
-            if (dbMap.testimonials) setTestimonials(dbMap.testimonials);
-            if (dbMap.team) setTeam(dbMap.team);
-            if (dbMap.logoUrl) setLogoUrl(dbMap.logoUrl);
-            if (dbMap.headerBranding) setHeaderBranding(dbMap.headerBranding);
-            if (dbMap.noticeConfig) setNoticeConfig(dbMap.noticeConfig);
-            if (dbMap.offerConfig) setOfferConfig(dbMap.offerConfig);
-            if (dbMap.contactConfig) setContactConfig(dbMap.contactConfig);
-            if (dbMap.sectionHeadings) setSectionHeadings(dbMap.sectionHeadings);
-            if (dbMap.customPackagePlans) setCustomPackagePlans(dbMap.customPackagePlans);
-            if (dbMap.whyChooseUsStats) setWhyChooseUsStats(dbMap.whyChooseUsStats);
-            if (dbMap.whyChooseUsItems) setWhyChooseUsItems(dbMap.whyChooseUsItems);
-            if (dbMap.promoPopupConfig) setPromoPopupConfig(dbMap.promoPopupConfig);
-
-            updateLocalCache({
-              hero: dbMap.hero,
-              owner: dbMap.owner,
-              services: dbMap.services,
-              websites: dbMap.websites,
-              portfolio: dbMap.portfolio,
-              portfolioCategories: dbMap.portfolioCategories,
-              testimonials: dbMap.testimonials,
-              team: dbMap.team,
-              logoUrl: dbMap.logoUrl,
-              headerBranding: dbMap.headerBranding,
-              noticeConfig: dbMap.noticeConfig,
-              offerConfig: dbMap.offerConfig,
-              contactConfig: dbMap.contactConfig,
-              sectionHeadings: dbMap.sectionHeadings,
-              customPackagePlans: dbMap.customPackagePlans,
-              whyChooseUsStats: dbMap.whyChooseUsStats,
-              whyChooseUsItems: dbMap.whyChooseUsItems,
-              promoPopupConfig: dbMap.promoPopupConfig
-            });
-          } else if (error) {
-            console.warn("Supabase content query failed, falling back to local Express content JSON DB:", error);
-            const response = await fetch(`/api/content?t=${Date.now()}`);
-            const resJson = await response.json();
-            if (resJson.success && resJson.data) {
-              const d = resJson.data;
-              if (d.hero) setHeroConfig(d.hero);
-              if (d.owner) setOwner(d.owner);
-              if (d.services) setServices(d.services);
-              if (d.websites) setWebsites(d.websites);
-              if (d.portfolio) setPortfolio(d.portfolio);
-              if (d.portfolioCategories) setPortfolioCategories(d.portfolioCategories);
-              if (d.testimonials) setTestimonials(d.testimonials);
-              if (d.team) setTeam(d.team);
-              if (d.logoUrl) setLogoUrl(d.logoUrl);
-              if (d.headerBranding) setHeaderBranding(d.headerBranding);
-              if (d.noticeConfig) setNoticeConfig(d.noticeConfig);
-              if (d.offerConfig) setOfferConfig(d.offerConfig);
-              if (d.contactConfig) setContactConfig(d.contactConfig);
-              if (d.sectionHeadings) setSectionHeadings(d.sectionHeadings);
-              if (d.customPackagePlans) setCustomPackagePlans(d.customPackagePlans);
-              if (d.whyChooseUsStats) setWhyChooseUsStats(d.whyChooseUsStats);
-              if (d.whyChooseUsItems) setWhyChooseUsItems(d.whyChooseUsItems);
-              if (d.promoPopupConfig) setPromoPopupConfig(d.promoPopupConfig);
-
-              updateLocalCache({
-                hero: d.hero,
-                owner: d.owner,
-                services: d.services,
-                websites: d.websites,
-                portfolio: d.portfolio,
-                portfolioCategories: d.portfolioCategories,
-                testimonials: d.testimonials,
-                team: d.team,
-                logoUrl: d.logoUrl,
-                headerBranding: d.headerBranding,
-                noticeConfig: d.noticeConfig,
-                offerConfig: d.offerConfig,
-                contactConfig: d.contactConfig,
-                sectionHeadings: d.sectionHeadings,
-                customPackagePlans: d.customPackagePlans,
-                whyChooseUsStats: d.whyChooseUsStats,
-                whyChooseUsItems: d.whyChooseUsItems,
-                promoPopupConfig: d.promoPopupConfig
-              });
+      // Helper function to retry relative API fetches to allow container startup
+      const fetchWithRetry = async (url: string, retries = 4, delayMs = 1200): Promise<any> => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const res = await fetch(url);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.success && data.data) {
+                return data.data;
+              }
             }
-          } else {
-            // Seeding phase: Supabase table is empty, so let's push existing default and local state parameters
-            const defaultsToSeed: Record<string, any> = {
-              hero: defaultHero,
-              owner: defaultOwner,
-              services: SERVICES,
-              websites: WEBSITES,
-              portfolio: PORTFOLIO,
-              portfolioCategories: defaultPortfolioCategories,
-              testimonials: TESTIMONIALS,
-              team: TEAM,
-              logoUrl: "https://www.image2url.com/r2/default/images/1780210596854-d50e17fe-f288-45b0-8d70-5a0cb736b9be.jpeg",
-              headerBranding: defaultHeaderBranding,
-              noticeConfig: defaultNoticeConfig,
-              offerConfig: defaultOfferConfig,
-              contactConfig: defaultContact,
-              sectionHeadings: defaultSectionHeadings,
-                            whyChooseUsStats: defaultWhyChooseUsStats,
-              whyChooseUsItems: defaultWhyChooseUsItems,
-              promoPopupConfig: defaultPromoPopupConfig,
-            };
-
-            const seedPromises = Object.entries(defaultsToSeed).map(([k, v]) => {
-              return supabase.from("avexon_content").upsert({ key: k, value: v });
-            });
-            await Promise.all(seedPromises);
+          } catch (e) {
+            console.warn(`[Content Fetch] Try ${i + 1} failed for ${url}:`, e);
           }
-
-          // Subscribe to real-time updates for table 'avexon_content'
-          subscription = supabase
-            .channel("avexon_content_realtime")
-            .on(
-              "postgres_changes",
-              { event: "*", schema: "public", table: "avexon_content" },
-              (payload: any) => {
-                if (payload.eventType === "DELETE") return;
-                const { key, value } = payload.new || {};
-                if (!key) return;
-
-                switch (key) {
-                  case "hero": setHeroConfig(value); break;
-                  case "owner": setOwner(value); break;
-                  case "services": setServices(value); break;
-                  case "websites": setWebsites(value); break;
-                  case "portfolio": setPortfolio(value); break;
-                  case "portfolioCategories": setPortfolioCategories(value); break;
-                  case "testimonials": setTestimonials(value); break;
-                  case "team": setTeam(value); break;
-                  case "logoUrl": setLogoUrl(value); break;
-                  case "headerBranding": setHeaderBranding(value); break;
-                  case "noticeConfig": setNoticeConfig(value); break;
-                  case "offerConfig": setOfferConfig(value); break;
-                  case "contactConfig": setContactConfig(value); break;
-                  case "sectionHeadings": setSectionHeadings(value); break;
-                  case "customPackagePlans": setCustomPackagePlans(value); break;
-                                    case "whyChooseUsStats": setWhyChooseUsStats(value); break;
-                  case "whyChooseUsItems": setWhyChooseUsItems(value); break;
-                  case "promoPopupConfig": setPromoPopupConfig(value); break;
-                }
-              }
-            )
-            .on(
-              "broadcast",
-              { event: "content_updated" },
-              (response: any) => {
-                const updates = response.payload;
-                if (updates && typeof updates === "object") {
-                  console.log("Received instant content broadcast updates:", updates);
-                  if (updates.hero !== undefined) setHeroConfig(updates.hero);
-                  if (updates.owner !== undefined) setOwner(updates.owner);
-                  if (updates.services !== undefined) setServices(updates.services);
-                  if (updates.websites !== undefined) setWebsites(updates.websites);
-                  if (updates.portfolio !== undefined) setPortfolio(updates.portfolio);
-                  if (updates.portfolioCategories !== undefined) setPortfolioCategories(updates.portfolioCategories);
-                  if (updates.testimonials !== undefined) setTestimonials(updates.testimonials);
-                  if (updates.team !== undefined) setTeam(updates.team);
-                  if (updates.logoUrl !== undefined) setLogoUrl(updates.logoUrl);
-                  if (updates.headerBranding !== undefined) setHeaderBranding(updates.headerBranding);
-                  if (updates.noticeConfig !== undefined) setNoticeConfig(updates.noticeConfig);
-                  if (updates.offerConfig !== undefined) setOfferConfig(updates.offerConfig);
-                  if (updates.contactConfig !== undefined) setContactConfig(updates.contactConfig);
-                  if (updates.sectionHeadings !== undefined) setSectionHeadings(updates.sectionHeadings);
-                  if (updates.customPackagePlans !== undefined) setCustomPackagePlans(updates.customPackagePlans);
-                                    if (updates.whyChooseUsStats !== undefined) setWhyChooseUsStats(updates.whyChooseUsStats);
-                  if (updates.whyChooseUsItems !== undefined) setWhyChooseUsItems(updates.whyChooseUsItems);
-                  if (updates.promoPopupConfig !== undefined) setPromoPopupConfig(updates.promoPopupConfig);
-                }
-              }
-            )
-            .subscribe();
-
-        } else {
-          // Standard Offline/Fallback Mode: Retrieve state from Express JSON API Endpoint
-          const response = await fetch(`/api/content?t=${Date.now()}`);
-          const resJson = await response.json();
-          if (resJson.success && resJson.data) {
-            const d = resJson.data;
-            if (d.hero) setHeroConfig(d.hero);
-            if (d.owner) setOwner(d.owner);
-            if (d.services) setServices(d.services);
-            if (d.websites) setWebsites(d.websites);
-            if (d.portfolio) setPortfolio(d.portfolio);
-            if (d.testimonials) setTestimonials(d.testimonials);
-            if (d.team) setTeam(d.team);
-            if (d.logoUrl) setLogoUrl(d.logoUrl);
-            if (d.headerBranding) setHeaderBranding(d.headerBranding);
-            if (d.noticeConfig) setNoticeConfig(d.noticeConfig);
-            if (d.offerConfig) setOfferConfig(d.offerConfig);
-            if (d.contactConfig) setContactConfig(d.contactConfig);
-            if (d.sectionHeadings) setSectionHeadings(d.sectionHeadings);
-            if (d.customPackagePlans) setCustomPackagePlans(d.customPackagePlans);
-            if (d.whyChooseUsStats) setWhyChooseUsStats(d.whyChooseUsStats);
-            if (d.whyChooseUsItems) setWhyChooseUsItems(d.whyChooseUsItems);
-          } else {
-            // Fallback to local storage (e.g. if container starts up offline first)
-            const storedHero = safeLocalStorage.getItem("avx_c_hero");
-            const storedOwner = safeLocalStorage.getItem("avx_c_owner");
-            const storedServices = safeLocalStorage.getItem("avx_c_services");
-            const storedWebsites = safeLocalStorage.getItem("avx_c_websites");
-            const storedPortfolio = safeLocalStorage.getItem("avx_c_portfolio");
-           const storedCats = safeLocalStorage.getItem("avx_c_portfolio_categories");
-           if (storedCats) setPortfolioCategories(JSON.parse(storedCats));
-            const storedTestimonials = safeLocalStorage.getItem("avx_c_testimonials");
-            const storedTeam = safeLocalStorage.getItem("avx_c_team");
-            const storedLogo = safeLocalStorage.getItem("avx_c_logo");
-            const storedBranding = safeLocalStorage.getItem("avx_c_header_branding");
-            const storedNotice = safeLocalStorage.getItem("avx_c_notice");
-            const storedOffer = safeLocalStorage.getItem("avx_c_offer");
-            const storedContact = safeLocalStorage.getItem("avx_c_contact");
-            const storedHeadings = safeLocalStorage.getItem("avx_c_headings");
-            const storedPackagePlans = safeLocalStorage.getItem("avx_c_package_plans");
-            const storedWhyChooseUsStats = safeLocalStorage.getItem("avx_c_why_choose_us_stats");
-            const storedWhyChooseUsItems = safeLocalStorage.getItem("avx_c_why_choose_us_items");
-            const storedPromoPopup = safeLocalStorage.getItem("avx_c_promo_popup");
-
-            if (storedHero) setHeroConfig(JSON.parse(storedHero));
-            if (storedOwner) setOwner(JSON.parse(storedOwner));
-            if (storedServices) setServices(JSON.parse(storedServices));
-            if (storedWebsites) setWebsites(JSON.parse(storedWebsites));
-            if (storedPortfolio) setPortfolio(JSON.parse(storedPortfolio));
-            if (storedTestimonials) setTestimonials(JSON.parse(storedTestimonials));
-            if (storedTeam) setTeam(JSON.parse(storedTeam));
-            if (storedLogo) setLogoUrl(storedLogo);
-            if (storedBranding) setHeaderBranding(JSON.parse(storedBranding));
-            if (storedNotice) setNoticeConfig(JSON.parse(storedNotice));
-            if (storedOffer) setOfferConfig(JSON.parse(storedOffer));
-            if (storedContact) setContactConfig(JSON.parse(storedContact));
-            if (storedHeadings) setSectionHeadings(JSON.parse(storedHeadings));
-            if (storedPackagePlans) setCustomPackagePlans(JSON.parse(storedPackagePlans));
-                        if (storedWhyChooseUsStats) setWhyChooseUsStats(JSON.parse(storedWhyChooseUsStats));
-            if (storedWhyChooseUsItems) setWhyChooseUsItems(JSON.parse(storedWhyChooseUsItems));
-            if (storedPromoPopup) setPromoPopupConfig(JSON.parse(storedPromoPopup));
+          if (i < retries - 1) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
           }
         }
-      } catch (e) {
-        console.warn("Failed to load initial state, falling back to local storage: ", e);
-        try {
+        throw new Error(`Failed to fetch from ${url} after ${retries} retries`);
+      };
+
+      try {
+        let loadedData: any = null;
+
+        // Step 1: Query Supabase Content Database as the high-priority persistent source
+        if (isSupabaseConfigured && supabase) {
+          try {
+            console.log("[Content DB] Primary load: fetching initial data from Supabase...");
+            const { data: dbData, error } = await supabase
+              .from("avexon_content")
+              .select("*");
+
+            if (!error && dbData && dbData.length > 0) {
+              const dbMap: Record<string, any> = {};
+              dbData.forEach((row: any) => {
+                dbMap[row.key] = row.value;
+              });
+              loadedData = dbMap;
+            } else if (error) {
+              console.warn("[Content DB] Supabase table query failed, falling back to Express API endpoint:", error.message);
+            } else {
+              // Seeding phase: Supabase table exists but is empty, so let's push existing default parameters
+              console.log("[Content DB] Supabase table empty, running automatic database seed...");
+              const defaultsToSeed: Record<string, any> = {
+                hero: defaultHero,
+                owner: defaultOwner,
+                services: SERVICES,
+                websites: WEBSITES,
+                portfolio: PORTFOLIO,
+                portfolioCategories: defaultPortfolioCategories,
+                testimonials: TESTIMONIALS,
+                team: TEAM,
+                logoUrl: "https://www.image2url.com/r2/default/images/1780210596854-d50e17fe-f288-45b0-8d70-5a0cb736b9be.jpeg",
+                headerBranding: defaultHeaderBranding,
+                noticeConfig: defaultNoticeConfig,
+                offerConfig: defaultOfferConfig,
+                contactConfig: defaultContact,
+                sectionHeadings: defaultSectionHeadings,
+                whyChooseUsStats: defaultWhyChooseUsStats,
+                whyChooseUsItems: defaultWhyChooseUsItems,
+                promoPopupConfig: defaultPromoPopupConfig,
+              };
+
+              const seedPromises = Object.entries(defaultsToSeed).map(([k, v]) => {
+                return supabase.from("avexon_content").upsert({ key: k, value: v });
+              });
+              await Promise.all(seedPromises);
+              loadedData = defaultsToSeed;
+            }
+          } catch (supabaseCrash: any) {
+            console.warn("[Content DB] Exception during Supabase initialization/fetch:", supabaseCrash.message);
+          }
+        }
+
+        // Step 2: Fallback to local server API (Express JSON DB) if Supabase is offline or empty.
+        // We use explicit retries to cleanly withstand backend cold starts!
+        if (!loadedData) {
+          try {
+            console.log("[Content DB] Fallback load: Querying Express endpoint with auto-retries for container cold-start...");
+            loadedData = await fetchWithRetry(`/api/content?t=${Date.now()}`, 4, 1200);
+          } catch (expressError: any) {
+            console.warn("[Content DB] All active server network queries failed. Fallback to localStorage.", expressError);
+          }
+        }
+
+        // Step 3: Hydrate our states and cache to localStorage
+        if (loadedData) {
+          console.log("[Content DB] Successfully loaded database content state!", loadedData);
+          if (loadedData.hero) setHeroConfig(loadedData.hero);
+          if (loadedData.owner) setOwner(loadedData.owner);
+          if (loadedData.services) setServices(loadedData.services);
+          if (loadedData.websites) setWebsites(loadedData.websites);
+          if (loadedData.portfolio) setPortfolio(loadedData.portfolio);
+          if (loadedData.portfolioCategories) setPortfolioCategories(loadedData.portfolioCategories);
+          if (loadedData.testimonials) setTestimonials(loadedData.testimonials);
+          if (loadedData.team) setTeam(loadedData.team);
+          if (loadedData.logoUrl) setLogoUrl(loadedData.logoUrl);
+          if (loadedData.headerBranding) setHeaderBranding(loadedData.headerBranding);
+          if (loadedData.noticeConfig) setNoticeConfig(loadedData.noticeConfig);
+          if (loadedData.offerConfig) setOfferConfig(loadedData.offerConfig);
+          if (loadedData.contactConfig) setContactConfig(loadedData.contactConfig);
+          if (loadedData.sectionHeadings) setSectionHeadings(loadedData.sectionHeadings);
+          if (loadedData.customPackagePlans) setCustomPackagePlans(loadedData.customPackagePlans);
+          if (loadedData.whyChooseUsStats) setWhyChooseUsStats(loadedData.whyChooseUsStats);
+          if (loadedData.whyChooseUsItems) setWhyChooseUsItems(loadedData.whyChooseUsItems);
+          if (loadedData.promoPopupConfig) setPromoPopupConfig(loadedData.promoPopupConfig);
+
+          // Automatically extract and cache any saved backend URL and server IP (from Supabase/Express) inside browser localStorage
+          if (loadedData.backendUrl) {
+            safeLocalStorage.setItem("avexon_api_backend_url", loadedData.backendUrl);
+            if (typeof window !== "undefined") {
+              (window as any).__avexon_active_backend_url = loadedData.backendUrl;
+              window.dispatchEvent(new Event("storage"));
+            }
+          }
+          if (loadedData.serverIp) {
+            safeLocalStorage.setItem("avexon_api_server_ip", loadedData.serverIp);
+          }
+
+          updateLocalCache(loadedData);
+        } else {
+          // Absolute offline/failure fallback: hydrate states using browser local storage properties
+          console.log("[Content DB] Offline Fallback: Extracting cache states from client localStorage...");
           const storedHero = safeLocalStorage.getItem("avx_c_hero");
           const storedOwner = safeLocalStorage.getItem("avx_c_owner");
           const storedServices = safeLocalStorage.getItem("avx_c_services");
           const storedWebsites = safeLocalStorage.getItem("avx_c_websites");
           const storedPortfolio = safeLocalStorage.getItem("avx_c_portfolio");
+          const storedCats = safeLocalStorage.getItem("avx_c_portfolio_categories");
+          if (storedCats) setPortfolioCategories(JSON.parse(storedCats));
           const storedTestimonials = safeLocalStorage.getItem("avx_c_testimonials");
           const storedTeam = safeLocalStorage.getItem("avx_c_team");
           const storedLogo = safeLocalStorage.getItem("avx_c_logo");
@@ -703,10 +573,99 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
           if (storedContact) setContactConfig(JSON.parse(storedContact));
           if (storedHeadings) setSectionHeadings(JSON.parse(storedHeadings));
           if (storedPackagePlans) setCustomPackagePlans(JSON.parse(storedPackagePlans));
-                    if (storedWhyChooseUsStats) setWhyChooseUsStats(JSON.parse(storedWhyChooseUsStats));
+          if (storedWhyChooseUsStats) setWhyChooseUsStats(JSON.parse(storedWhyChooseUsStats));
           if (storedWhyChooseUsItems) setWhyChooseUsItems(JSON.parse(storedWhyChooseUsItems));
           if (storedPromoPopup) setPromoPopupConfig(JSON.parse(storedPromoPopup));
-        } catch (subErr) {}
+        }
+
+        // Setup real-time postgres and broadcast subscription if Supabase was running
+        if (isSupabaseConfigured && supabase) {
+          subscription = supabase
+            .channel("avexon_content_realtime")
+            .on(
+              "postgres_changes",
+              { event: "*", schema: "public", table: "avexon_content" },
+              (payload: any) => {
+                if (payload.eventType === "DELETE") return;
+                const { key, value } = payload.new || {};
+                if (!key) return;
+
+                switch (key) {
+                  case "hero": setHeroConfig(value); break;
+                  case "owner": setOwner(value); break;
+                  case "services": setServices(value); break;
+                  case "websites": setWebsites(value); break;
+                  case "portfolio": setPortfolio(value); break;
+                  case "portfolioCategories": setPortfolioCategories(value); break;
+                  case "testimonials": setTestimonials(value); break;
+                  case "team": setTeam(value); break;
+                  case "logoUrl": setLogoUrl(value); break;
+                  case "headerBranding": setHeaderBranding(value); break;
+                  case "noticeConfig": setNoticeConfig(value); break;
+                  case "offerConfig": setOfferConfig(value); break;
+                  case "contactConfig": setContactConfig(value); break;
+                  case "sectionHeadings": setSectionHeadings(value); break;
+                  case "customPackagePlans": setCustomPackagePlans(value); break;
+                  case "whyChooseUsStats": setWhyChooseUsStats(value); break;
+                  case "whyChooseUsItems": setWhyChooseUsItems(value); break;
+                  case "promoPopupConfig": setPromoPopupConfig(value); break;
+                  case "backendUrl": {
+                    safeLocalStorage.setItem("avexon_api_backend_url", value);
+                    if (typeof window !== "undefined") {
+                      (window as any).__avexon_active_backend_url = value;
+                      window.dispatchEvent(new Event("storage"));
+                    }
+                    break;
+                  }
+                  case "serverIp": {
+                    safeLocalStorage.setItem("avexon_api_server_ip", value);
+                    break;
+                  }
+                }
+              }
+            )
+            .on(
+              "broadcast",
+              { event: "content_updated" },
+              (response: any) => {
+                const updates = response.payload;
+                if (updates && typeof updates === "object") {
+                  console.log("Received instant content broadcast updates:", updates);
+                  if (updates.hero !== undefined) setHeroConfig(updates.hero);
+                  if (updates.owner !== undefined) setOwner(updates.owner);
+                  if (updates.services !== undefined) setServices(updates.services);
+                  if (updates.websites !== undefined) setWebsites(updates.websites);
+                  if (updates.portfolio !== undefined) setPortfolio(updates.portfolio);
+                  if (updates.portfolioCategories !== undefined) setPortfolioCategories(updates.portfolioCategories);
+                  if (updates.testimonials !== undefined) setTestimonials(updates.testimonials);
+                  if (updates.team !== undefined) setTeam(updates.team);
+                  if (updates.logoUrl !== undefined) setLogoUrl(updates.logoUrl);
+                  if (updates.headerBranding !== undefined) setHeaderBranding(updates.headerBranding);
+                  if (updates.noticeConfig !== undefined) setNoticeConfig(updates.noticeConfig);
+                  if (updates.offerConfig !== undefined) setOfferConfig(updates.offerConfig);
+                  if (updates.contactConfig !== undefined) setContactConfig(updates.contactConfig);
+                  if (updates.sectionHeadings !== undefined) setSectionHeadings(updates.sectionHeadings);
+                  if (updates.customPackagePlans !== undefined) setCustomPackagePlans(updates.customPackagePlans);
+                  if (updates.whyChooseUsStats !== undefined) setWhyChooseUsStats(updates.whyChooseUsStats);
+                  if (updates.whyChooseUsItems !== undefined) setWhyChooseUsItems(updates.whyChooseUsItems);
+                  if (updates.promoPopupConfig !== undefined) setPromoPopupConfig(updates.promoPopupConfig);
+                  if (updates.backendUrl !== undefined) {
+                    safeLocalStorage.setItem("avexon_api_backend_url", updates.backendUrl);
+                    if (typeof window !== "undefined") {
+                      (window as any).__avexon_active_backend_url = updates.backendUrl;
+                      window.dispatchEvent(new Event("storage"));
+                    }
+                  }
+                  if (updates.serverIp !== undefined) {
+                    safeLocalStorage.setItem("avexon_api_server_ip", updates.serverIp);
+                  }
+                }
+              }
+            )
+            .subscribe();
+        }
+      } catch (e) {
+        console.warn("Critical block failure inside fetchInitialData:", e);
       } finally {
         if (safetyTimer) clearTimeout(safetyTimer);
         setIsLoading(false);
@@ -729,12 +688,37 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
-        const response = await fetch(`/api/content?t=${Date.now()}`);
-        const resJson = await response.json();
-        if (resJson.success && resJson.data) {
-          const d = resJson.data;
-          
-          // Only update if something is different (shallow/deep check omitted, standard React comparison is safe)
+        let freshData: any = null;
+
+        // On static hosting like Netlify, fetch from Supabase first as it has CORS enabled and avoids relative domain issues
+        if (isSupabaseConfigured && supabase) {
+          try {
+            const { data: dbData, error } = await supabase
+              .from("avexon_content")
+              .select("*");
+            if (!error && dbData && dbData.length > 0) {
+              const dbMap: Record<string, any> = {};
+              dbData.forEach((row: any) => {
+                dbMap[row.key] = row.value;
+              });
+              freshData = dbMap;
+            }
+          } catch (_) {}
+        }
+
+        // Otherwise (or as a fallback), poll the Express JSON server API
+        if (!freshData) {
+          const response = await fetch(`/api/content?t=${Date.now()}`);
+          if (response.ok) {
+            const resJson = await response.json();
+            if (resJson.success && resJson.data) {
+              freshData = resJson.data;
+            }
+          }
+        }
+
+        if (freshData) {
+          const d = freshData;
           if (d.hero) setHeroConfig(d.hero);
           if (d.owner) setOwner(d.owner);
           if (d.services && Array.isArray(d.services)) setServices(d.services);
@@ -754,26 +738,18 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
           if (d.whyChooseUsItems) setWhyChooseUsItems(d.whyChooseUsItems);
           if (d.promoPopupConfig) setPromoPopupConfig(d.promoPopupConfig);
 
-          updateLocalCache({
-            hero: d.hero,
-            owner: d.owner,
-            services: d.services,
-            websites: d.websites,
-            portfolio: d.portfolio,
-            portfolioCategories: d.portfolioCategories,
-            testimonials: d.testimonials,
-            team: d.team,
-            logoUrl: d.logoUrl,
-            headerBranding: d.headerBranding,
-            noticeConfig: d.noticeConfig,
-            offerConfig: d.offerConfig,
-            contactConfig: d.contactConfig,
-            sectionHeadings: d.sectionHeadings,
-            customPackagePlans: d.customPackagePlans,
-            whyChooseUsStats: d.whyChooseUsStats,
-            whyChooseUsItems: d.whyChooseUsItems,
-            promoPopupConfig: d.promoPopupConfig
-          });
+          // Caching metadata if loaded
+          if (d.backendUrl) {
+            safeLocalStorage.setItem("avexon_api_backend_url", d.backendUrl);
+            if (typeof window !== "undefined") {
+              (window as any).__avexon_active_backend_url = d.backendUrl;
+            }
+          }
+          if (d.serverIp) {
+            safeLocalStorage.setItem("avexon_api_server_ip", d.serverIp);
+          }
+
+          updateLocalCache(freshData);
         }
       } catch (e) {
         // Silent catch for stable client flow

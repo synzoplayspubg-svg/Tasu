@@ -568,11 +568,60 @@ function formatSMSTemplate(template: string, order: any): string {
     .replace(/\[PRICE\]/gi, String(order.price || ""));
 }
 
+// Background helper to automatically update active server metadata (IP & URL) in Supabase
+async function syncMetadataOnRequest(detectedUrl: string, detectedIp?: string) {
+  try {
+    const dbClient = getSupabaseClient();
+    if (!dbClient) return;
+
+    // Only sync valid external domains (ignore localhost environments to prevent muddying remote database keys)
+    if (detectedUrl && !detectedUrl.includes("localhost") && !detectedUrl.includes("127.0.0.1") && !detectedUrl.includes("::1")) {
+      await dbClient.from("avexon_content").upsert({ key: "backendUrl", value: detectedUrl });
+    }
+
+    // Determine or accept public IP
+    let ip = detectedIp || "";
+    if (!ip) {
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        if (ipRes.ok) {
+          const data: any = await ipRes.json();
+          if (data && data.ip) {
+            ip = data.ip;
+          }
+        }
+      } catch (_) {
+        try {
+          const ipRes = await fetch("https://ifconfig.me/all.json");
+          if (ipRes.ok) {
+            const data: any = await ipRes.json();
+            if (data && data.ip_addr) ip = data.ip_addr;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (ip && ip !== "34.34.244.47") {
+      await dbClient.from("avexon_content").upsert({ key: "serverIp", value: ip });
+    }
+  } catch (err: any) {
+    console.error("[Metadata Autocontrol Helper] Failed to background upsert latest metadata parameters to Supabase:", err.message);
+  }
+}
+
 // API to get content config from sever JSON file
 app.get("/api/content", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
+
+  // Autodetect running backend server address and auto-sync with Supabase in the background
+  const proto = req.headers["x-forwarded-proto"] || req.protocol;
+  const detectedUrl = `${proto}://${req.get("host")}`;
+  if (detectedUrl && !detectedUrl.includes("localhost") && !detectedUrl.includes("127.0.0.1") && !detectedUrl.includes("::")) {
+    Promise.resolve().then(() => syncMetadataOnRequest(detectedUrl)).catch(() => {});
+  }
+
   try {
     const dbClient = getSupabaseClient();
     if (dbClient) {
@@ -1229,54 +1278,70 @@ app.get("/api/server-ip", async (req, res) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 seconds timeout limit
 
+  let ipAddress = "";
+
   try {
     const ipRes = await fetch("https://api.ipify.org?format=json", { signal: controller.signal });
     clearTimeout(timeoutId);
     if (ipRes.ok) {
       const data: any = await ipRes.json();
       if (data && data.ip) {
-        return res.json({ success: true, ip: data.ip });
+        ipAddress = data.ip;
       }
     }
   } catch (err: any) {
     console.warn("[Server IP] Primary provider api.ipify.org failed or timed out:", err.message);
   }
 
-  // Backup provider
-  const backupController = new AbortController();
-  const backupTimeoutId = setTimeout(() => backupController.abort(), 3000);
-  try {
-    const ipRes = await fetch("https://ifconfig.me/all.json", { signal: backupController.signal });
-    clearTimeout(backupTimeoutId);
-    if (ipRes.ok) {
-      const data: any = await ipRes.json();
-      if (data && data.ip_addr) {
-        return res.json({ success: true, ip: data.ip_addr });
+  if (!ipAddress) {
+    // Backup provider
+    const backupController = new AbortController();
+    const backupTimeoutId = setTimeout(() => backupController.abort(), 3000);
+    try {
+      const ipRes = await fetch("https://ifconfig.me/all.json", { signal: backupController.signal });
+      clearTimeout(backupTimeoutId);
+      if (ipRes.ok) {
+        const data: any = await ipRes.json();
+        if (data && data.ip_addr) {
+          ipAddress = data.ip_addr;
+        }
       }
+    } catch (err: any) {
+      console.warn("[Server IP] Backup provider ifconfig.me failed or timed out:", err.message);
     }
-  } catch (err: any) {
-    console.warn("[Server IP] Backup provider ifconfig.me failed or timed out:", err.message);
   }
 
-  // Secondary backup
-  const secondaryController = new AbortController();
-  const secondaryTimeoutId = setTimeout(() => secondaryController.abort(), 3000);
-  try {
-    const ipRes = await fetch("https://ipinfo.io/json", { signal: secondaryController.signal });
-    clearTimeout(secondaryTimeoutId);
-    if (ipRes.ok) {
-      const data: any = await ipRes.json();
-      if (data && data.ip) {
-        return res.json({ success: true, ip: data.ip });
+  if (!ipAddress) {
+    // Secondary backup
+    const secondaryController = new AbortController();
+    const secondaryTimeoutId = setTimeout(() => secondaryController.abort(), 3000);
+    try {
+      const ipRes = await fetch("https://ipinfo.io/json", { signal: secondaryController.signal });
+      clearTimeout(secondaryTimeoutId);
+      if (ipRes.ok) {
+        const data: any = await ipRes.json();
+        if (data && data.ip) {
+          ipAddress = data.ip;
+        }
       }
+    } catch (err: any) {
+      console.warn("[Server IP] Secondary backup provider ipinfo.io failed or timed out:", err.message);
     }
-  } catch (err: any) {
-    console.warn("[Server IP] Secondary backup provider ipinfo.io failed or timed out:", err.message);
   }
 
-  // Hardcoded known platform egress IP fallback to ensure it NEVER hangs
-  console.log("[Server IP] Falling back to known platform egress IP: 34.34.244.47");
-  return res.json({ success: true, ip: "34.34.244.47" });
+  if (!ipAddress) {
+    console.log("[Server IP] Falling back to known platform egress IP: 34.34.244.47");
+    ipAddress = "34.34.244.47";
+  }
+
+  // Auto-sync in background
+  const proto = req.headers["x-forwarded-proto"] || req.protocol;
+  const detectedUrl = `${proto}://${req.get("host")}`;
+  if (detectedUrl && !detectedUrl.includes("localhost") && !detectedUrl.includes("127.0.0.1") && !detectedUrl.includes("::")) {
+    Promise.resolve().then(() => syncMetadataOnRequest(detectedUrl, ipAddress)).catch(() => {});
+  }
+
+  return res.json({ success: true, ip: ipAddress });
 });
 
 // Setup development dev-server or production asset handling
