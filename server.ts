@@ -644,8 +644,8 @@ app.get("/api/content", async (req, res) => {
           if (fs.existsSync(CONTENT_DB_FILE)) {
             try {
               const localData = JSON.parse(fs.readFileSync(CONTENT_DB_FILE, "utf-8"));
-              // Local filesystem is the authoritative primary source — merge it on top of Supabase response
-              mergedWithLocal = { ...dbMap, ...localData };
+              // Supabase cloud database is the primary source of truth — merge it on top of local data
+              mergedWithLocal = { ...localData, ...dbMap };
             } catch (pErr) {
               console.warn("Could not parse local data for merging safety checks:", pErr);
             }

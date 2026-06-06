@@ -364,6 +364,7 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
   const [promoPopupConfig, setPromoPopupConfig] = useState<PromoPopupConfig>(() => safeGetLocalStorage("avx_c_promo_popup", defaultPromoPopupConfig));
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const lastSavedTime = React.useRef<number>(0);
+  const activeChannelRef = React.useRef<any>(null);
 
   // Master local storage caching synchronizer
   const updateLocalCache = (updates: Record<string, any>) => {
@@ -580,8 +581,9 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
 
         // Setup real-time postgres and broadcast subscription if Supabase was running
         if (isSupabaseConfigured && supabase) {
-          subscription = supabase
-            .channel("avexon_content_realtime")
+          const liveChan = supabase.channel("avexon_content_realtime");
+          activeChannelRef.current = liveChan;
+          subscription = liveChan
             .on(
               "postgres_changes",
               { event: "*", schema: "public", table: "avexon_content" },
@@ -662,7 +664,9 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
                 }
               }
             )
-            .subscribe();
+            .subscribe((status) => {
+              console.log("[Content DB] Supabase realtime active channel subscription status:", status);
+            });
         }
       } catch (e) {
         console.warn("Critical block failure inside fetchInitialData:", e);
@@ -888,7 +892,11 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
 
         // Also broadcast the update signal directly over the websocket channel for ultra-responsive, zero-lag rendering
         try {
-          await supabase.channel("avexon_content_realtime").send({
+          const chan = activeChannelRef.current || supabase.channel("avexon_content_realtime");
+          if (!activeChannelRef.current) {
+            chan.subscribe();
+          }
+          await chan.send({
             type: "broadcast",
             event: "content_updated",
             payload: updates
