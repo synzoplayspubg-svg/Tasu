@@ -54,6 +54,11 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  /* Disables double-tap and pinch zoom gestures */
+  touch-action: pan-x pan-y;
+  /* Prevents annoying pull-to-refresh on standalone PWAs */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -63,6 +68,16 @@ body {
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  /* Disables double-tap and pinch zoom gestures */
+  touch-action: pan-x pan-y;
+  /* Prevents annoying pull-to-refresh on standalone PWAs */
+  overscroll-behavior-y: none;
+}
+
+/* Force standard font size of 16px on inputs on mobile to fully block iOS auto-zoom behavior on focus */
+input, select, textarea {
+  font-size: 16px !important;
 }
 
 /* Enable smooth inertia scrolling on custom scrollbars */

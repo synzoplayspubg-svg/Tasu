@@ -8,6 +8,88 @@ import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
+// Robust helper to parse Bengali date string fallback (e.g. "৬ জুন, ২০২৬ ১০:৫৫ AM")
+function parseBengaliDate(bnDateStr: string): number {
+  if (!bnDateStr) return 0;
+  
+  // Replace Bengali digits with English digits
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  let str = bnDateStr.replace(/[০-৯]/g, (match) => String(bnDigits.indexOf(match)));
+  
+  // Replace Bengali months with English months
+  const monthsMap: Record<string, string> = {
+    "জানুয়ারি": "January", "জানুয়ারী": "January",
+    "ফেব্রুয়ারি": "February", "ফেব্রুয়ারী": "February",
+    "মার্চ": "March",
+    "এপ্রিল": "April",
+    "মে": "May",
+    "জুন": "June",
+    "জুলাই": "July",
+    "আগস্ট": "August", "আগষ্ট": "August",
+    "সেপ্টেম্বর": "September",
+    "অক্টোবর": "October",
+    "নভেম্বর": "November",
+    "ডিসেম্বর": "December"
+  };
+  
+  Object.entries(monthsMap).forEach(([bnMonth, enMonth]) => {
+    str = str.replace(new RegExp(bnMonth, "g"), enMonth);
+  });
+  
+  // Remove spaces around commas and clean string
+  str = str.replace(/\s*,\s*/g, ", ");
+  
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed)) {
+    return parsed;
+  }
+  
+  // If still NaN, try parsing elements manually
+  try {
+    const parts = str.split(/[\s,]+/);
+    const day = parseInt(parts[0], 10);
+    const monthStr = parts[1];
+    const year = parseInt(parts[2], 10);
+    
+    const enMonthIdx = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+      .findIndex(m => m.toLowerCase() === monthStr?.toLowerCase());
+    
+    if (day && year && enMonthIdx !== -1) {
+      const d = new Date(year, enMonthIdx, day);
+      if (parts[3]) {
+        // try to parse time e.g. "10:55"
+        const timeParts = parts[3].split(":");
+        let hrs = parseInt(timeParts[0], 10) || 0;
+        const mins = parseInt(timeParts[1], 10) || 0;
+        const isPM = parts[4]?.toLowerCase() === "pm";
+        if (isPM && hrs < 12) hrs += 12;
+        if (!isPM && hrs === 12) hrs = 0;
+        d.setHours(hrs, mins, 0, 0);
+      }
+      return d.getTime();
+    }
+  } catch (e) {
+    console.warn("Failed manually parsing Bengali date parts:", e);
+  }
+  
+  return 0;
+}
+
+// Get numeric timestamp prioritizing reliable standard ISO format
+function getOrderTimestamp(order: any): number {
+  if (!order) return 0;
+  if (order.createdAtISO) {
+    const t = Date.parse(order.createdAtISO);
+    if (!isNaN(t)) return t;
+  }
+  if (order.createdAt) {
+    const t = Date.parse(order.createdAt);
+    if (!isNaN(t)) return t;
+    return parseBengaliDate(order.createdAt);
+  }
+  return 0;
+}
+
 const app = express();
 const PORT = 3000;
 const SERVER_START_TIME = new Date();
@@ -609,6 +691,34 @@ async function syncMetadataOnRequest(detectedUrl: string, detectedIp?: string) {
   }
 }
 
+// Track connected SSE client responses for instant backend-to-browser push updates
+let contentSseClients: any[] = [];
+
+// SSE (Server-Sent Events) endpoint to establish a live connection with browsers
+app.get("/api/content/updates-stream", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // Disable buffering for Nginx & proxy layers
+  res.flushHeaders();
+
+  // Send initial keep-alive comment
+  res.write(": keep-alive\n\n");
+
+  contentSseClients.push(res);
+
+  const keepAliveInterval = setInterval(() => {
+    if (!res.writableEnded) {
+      res.write(": keep-alive\n\n");
+    }
+  }, 25000);
+
+  req.on("close", () => {
+    clearInterval(keepAliveInterval);
+    contentSseClients = contentSseClients.filter((c) => c !== res);
+  });
+});
+
 // API to get content config from sever JSON file
 app.get("/api/content", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0");
@@ -687,6 +797,18 @@ app.post("/api/content", async (req, res) => {
 
     const mergedContent = { ...currentData, ...incomingData };
     fs.writeFileSync(CONTENT_DB_FILE, JSON.stringify(mergedContent, null, 2), "utf-8");
+
+    // Broadcast content updates to all connected browser clients instantly via SSE streams
+    const updatePayload = JSON.stringify({ success: true, data: mergedContent });
+    contentSseClients.forEach((client) => {
+      try {
+        if (!client.writableEnded) {
+          client.write(`data: ${updatePayload}\n\n`);
+        }
+      } catch (err) {
+        console.warn("Error sending SSE broadcast to reference client:", err);
+      }
+    });
 
     // Push to Supabase if configured for cloud fallback
     const dbClient = getSupabaseClient();
@@ -902,11 +1024,11 @@ app.get("/api/orders", async (req, res) => {
       }
     });
 
-    // Sort chronologically (newest first)
+    // Sort chronologically (newest first) using robust fallback parser
     mergedList.sort((a: any, b: any) => {
-      const dateA = a && a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b && b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (isNaN(dateA) || isNaN(dateB) || dateA === dateB) {
+      const dateA = getOrderTimestamp(a);
+      const dateB = getOrderTimestamp(b);
+      if (dateA === 0 || dateB === 0 || dateA === dateB) {
         const idA = a && a.id ? String(a.id) : "";
         const idB = b && b.id ? String(b.id) : "";
         return idB.localeCompare(idA);
@@ -932,9 +1054,9 @@ app.get("/api/orders", async (req, res) => {
           const parsed = JSON.parse(fileData);
           const list = Array.isArray(parsed) ? parsed : [];
           list.sort((a: any, b: any) => {
-            const dateA = a && a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const dateB = b && b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            if (isNaN(dateA) || isNaN(dateB) || dateA === dateB) {
+            const dateA = getOrderTimestamp(a);
+            const dateB = getOrderTimestamp(b);
+            if (dateA === 0 || dateB === 0 || dateA === dateB) {
               const idA = a && a.id ? String(a.id) : "";
               const idB = b && b.id ? String(b.id) : "";
               return idB.localeCompare(idA);
@@ -1062,11 +1184,11 @@ app.post("/api/orders", async (req, res) => {
 
     const mergedList = Array.from(mergedMap.values());
 
-    // 4. Sort the full listing chronologically (newest first)
+    // 4. Sort the full listing chronologically (newest first) using robust fallback parser
     mergedList.sort((a: any, b: any) => {
-      const dateA = a && a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b && b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (isNaN(dateA) || isNaN(dateB) || dateA === dateB) {
+      const dateA = getOrderTimestamp(a);
+      const dateB = getOrderTimestamp(b);
+      if (dateA === 0 || dateB === 0 || dateA === dateB) {
         const idA = a && a.id ? String(a.id) : "";
         const idB = b && b.id ? String(b.id) : "";
         return idB.localeCompare(idA);

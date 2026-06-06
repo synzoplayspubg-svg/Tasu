@@ -60,6 +60,88 @@ import { WebsiteProduct, Service, PortfolioItem, PortfolioCategory, Testimonial,
 import { safeLocalStorage, safeSessionStorage } from "../utils/safeStorage";
 import { Order, OrderStatus } from "./CheckoutModal";
 
+// Robust helper to parse Bengali date string fallback (e.g. "৬ জুন, ২০২৬ ১০:৫৫ AM")
+export function parseBengaliDate(bnDateStr: string): number {
+  if (!bnDateStr) return 0;
+  
+  // Replace Bengali digits with English digits
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  let str = bnDateStr.replace(/[০-৯]/g, (match) => String(bnDigits.indexOf(match)));
+  
+  // Replace Bengali months with English months
+  const monthsMap: Record<string, string> = {
+    "জানুয়ারি": "January", "জানুয়ারী": "January",
+    "ফেব্রুয়ারি": "February", "ফেব্রুয়ারী": "February",
+    "মার্চ": "March",
+    "এপ্রিল": "April",
+    "মে": "May",
+    "জুন": "June",
+    "জুলাই": "July",
+    "আগস্ট": "August", "আগষ্ট": "August",
+    "সেপ্টেম্বর": "September",
+    "অক্টোবর": "October",
+    "নভেম্বর": "November",
+    "ডিসেম্বর": "December"
+  };
+  
+  Object.entries(monthsMap).forEach(([bnMonth, enMonth]) => {
+    str = str.replace(new RegExp(bnMonth, "g"), enMonth);
+  });
+  
+  // Remove spaces around commas and clean string
+  str = str.replace(/\s*,\s*/g, ", ");
+  
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed)) {
+    return parsed;
+  }
+  
+  // If still NaN, try parsing elements manually
+  try {
+    const parts = str.split(/[\s,]+/);
+    const day = parseInt(parts[0], 10);
+    const monthStr = parts[1];
+    const year = parseInt(parts[2], 10);
+    
+    const enMonthIdx = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+      .findIndex(m => m.toLowerCase() === monthStr?.toLowerCase());
+    
+    if (day && year && enMonthIdx !== -1) {
+      const d = new Date(year, enMonthIdx, day);
+      if (parts[3]) {
+        // try to parse time e.g. "10:55"
+        const timeParts = parts[3].split(":");
+        let hrs = parseInt(timeParts[0], 10) || 0;
+        const mins = parseInt(timeParts[1], 10) || 0;
+        const isPM = parts[4]?.toLowerCase() === "pm";
+        if (isPM && hrs < 12) hrs += 12;
+        if (!isPM && hrs === 12) hrs = 0;
+        d.setHours(hrs, mins, 0, 0);
+      }
+      return d.getTime();
+    }
+  } catch (e) {
+    console.warn("Failed manually parsing Bengali date parts:", e);
+  }
+  
+  return 0;
+}
+
+// Get numeric timestamp prioritizing reliable standard ISO format
+export function getOrderTimestamp(order: any): number {
+  if (!order) return 0;
+  if (order.createdAtISO) {
+    const t = Date.parse(order.createdAtISO);
+    if (!isNaN(t)) return t;
+  }
+  if (order.createdAt) {
+    const t = Date.parse(order.createdAt);
+    if (!isNaN(t)) return t;
+    return parseBengaliDate(order.createdAt);
+  }
+  return 0;
+}
+
 // Helper function to compress large uploaded image files into high-quality, performant base64 JPEGs
 function compressImage(file: File, maxWidth = 1600, maxHeight = 1600, quality = 0.88): Promise<string> {
   return new Promise((resolve) => {
@@ -871,9 +953,9 @@ export default function AdminPanel({ isOpen, onClose, isStandalonePWA = false }:
       const finalMergedList = Array.from(mergedMap.values());
 
       finalMergedList.sort((a: any, b: any) => {
-        const dateA = a && a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b && b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        if (isNaN(dateA) || isNaN(dateB) || dateA === dateB) {
+        const dateA = getOrderTimestamp(a);
+        const dateB = getOrderTimestamp(b);
+        if (dateA === 0 || dateB === 0 || dateA === dateB) {
           const idA = a && a.id ? String(a.id) : "";
           const idB = b && b.id ? String(b.id) : "";
           return idB.localeCompare(idA);

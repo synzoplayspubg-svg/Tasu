@@ -56,6 +56,7 @@ export interface Order {
   transactionId?: string;
   status: OrderStatus;
   createdAt: string;
+  createdAtISO?: string;
   hasReviewed?: boolean;
   desiredWebsiteName?: string;
   // Filled when status is Done
@@ -517,7 +518,8 @@ export default function CheckoutModal({ isOpen, onClose, preselectedWebsiteTitle
         senderNumber: phone.trim(),
         transactionId: "No Tracking (Custom Package)",
         status: 'Pending',
-        createdAt: formattedDate
+        createdAt: formattedDate,
+        createdAtISO: new Date().toISOString()
       };
 
       // Save order in context list
@@ -631,7 +633,8 @@ export default function CheckoutModal({ isOpen, onClose, preselectedWebsiteTitle
       transactionId: transactionId.trim(),
       status: 'Pending',
       createdAt: formattedDate,
-      desiredWebsiteName: desiredWebsiteName.trim()
+      desiredWebsiteName: desiredWebsiteName.trim(),
+      createdAtISO: new Date().toISOString()
     };
 
     // Save order in context list

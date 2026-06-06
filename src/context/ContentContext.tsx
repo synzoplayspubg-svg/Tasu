@@ -827,6 +827,77 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Synchronous realtime content database streaming (SSE)
+  useEffect(() => {
+    let sse: EventSource | null = null;
+    let reconnectTimeout: any = null;
+
+    const connectSSE = () => {
+      if (typeof window === "undefined" || !window.EventSource) return;
+
+      console.log("[Content Stream] Opening instant updates stream connection with Express backend...");
+      const streamUrl = `/api/content/updates-stream?t=${Date.now()}`;
+      sse = new EventSource(streamUrl);
+
+      sse.onmessage = (event) => {
+        try {
+          if (!event.data) return;
+          const parsed = JSON.parse(event.data);
+          if (parsed && parsed.success && parsed.data) {
+            const d = parsed.data;
+            console.log("[Content Stream] Instant broadcast stream update received!", d);
+            
+            if (d.hero) setHeroConfig(d.hero);
+            if (d.owner) setOwner(d.owner);
+            if (d.services && Array.isArray(d.services)) setServices(d.services);
+            if (d.websites && Array.isArray(d.websites)) setWebsites(d.websites);
+            if (d.portfolio && Array.isArray(d.portfolio)) setPortfolio(d.portfolio);
+            if (d.portfolioCategories && Array.isArray(d.portfolioCategories)) setPortfolioCategories(d.portfolioCategories);
+            if (d.testimonials && Array.isArray(d.testimonials)) setTestimonials(d.testimonials);
+            if (d.team && Array.isArray(d.team)) setTeam(d.team);
+            if (d.logoUrl) setLogoUrl(d.logoUrl);
+            if (d.headerBranding) setHeaderBranding(d.headerBranding);
+            if (d.noticeConfig) setNoticeConfig(d.noticeConfig);
+            if (d.offerConfig) setOfferConfig(d.offerConfig);
+            if (d.contactConfig) setContactConfig(d.contactConfig);
+            if (d.sectionHeadings) setSectionHeadings(d.sectionHeadings);
+            if (d.customPackagePlans) setCustomPackagePlans(d.customPackagePlans);
+            if (d.whyChooseUsStats) setWhyChooseUsStats(d.whyChooseUsStats);
+            if (d.whyChooseUsItems) setWhyChooseUsItems(d.whyChooseUsItems);
+            if (d.promoPopupConfig) setPromoPopupConfig(d.promoPopupConfig);
+
+            if (d.backendUrl) {
+              safeLocalStorage.setItem("avexon_api_backend_url", d.backendUrl);
+              (window as any).__avexon_active_backend_url = d.backendUrl;
+            }
+            if (d.serverIp) {
+              safeLocalStorage.setItem("avexon_api_server_ip", d.serverIp);
+            }
+
+            updateLocalCache(d);
+          }
+        } catch (err) {
+          console.warn("[Content Stream] Failed parsing stream data:", err);
+        }
+      };
+
+      sse.onerror = (err) => {
+        console.warn("[Content Stream] Stream error, scheduling auto-reconnect fallback in 5s:", err);
+        if (sse) {
+          sse.close();
+        }
+        reconnectTimeout = setTimeout(connectSSE, 5000);
+      };
+    };
+
+    connectSSE();
+
+    return () => {
+      if (sse) sse.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, []);
+
   // Save changes to the server backend JSON database
   const saveStateToServer = async (updates: {
     hero?: HeroConfig;
