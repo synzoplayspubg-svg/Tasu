@@ -168,7 +168,14 @@ if (typeof window !== "undefined") {
           let targetBaseUrl = activeBaseUrl;
           
           // Pure local utility endpoints must bypass any custom backend url redirects to run on the active container
-          const isPureLocalUtility = input.startsWith("/api/test-sms") || input.startsWith("/api/server-ip");
+          // ONLY if we are actually running on a local container host (e.g. .run.app or localhost).
+          // On static hosting platforms like Netlify, we MUST NOT bypass the custom backend URL config.
+          const isContainerHost = typeof window !== "undefined" && window.location.origin && (
+            window.location.origin.includes(".run.app") || 
+            window.location.origin.includes("localhost") || 
+            window.location.origin.includes("127.0.0.1")
+          );
+          const isPureLocalUtility = isContainerHost && (input.startsWith("/api/test-sms") || input.startsWith("/api/server-ip"));
           
           if (!isPureLocalUtility) {
             try {
